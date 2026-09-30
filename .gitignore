@@ -1,0 +1,16 @@
+.env
+.venv/
+.Rhistory
+.RData
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+derivatives/
+results/
+reports/
+figures/generated/
+tables/generated/
+*.sif
+.DS_Store

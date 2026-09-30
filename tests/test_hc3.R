@@ -1,0 +1,6 @@
+Sys.setenv(HBCD_ALLOW_R_PATCH_MISMATCH = "1", HBCD_OUTPUT = tempfile("hbcd-test-"))
+source("analysis/common.R")
+set.seed(1)
+d <- data.frame(y = rnorm(100), exposure = rep(c(0, 1), each = 50), age = rnorm(100))
+fit <- hc3_fit(d, "y", "exposure", "age")
+stopifnot(fit[["n"]] == 100, is.finite(fit[["beta"]]), is.finite(fit[["se"]]), fit[["se"]] > 0)
