@@ -40,7 +40,9 @@ def clean(field, value):
 def main():
     scanners = defaultdict(lambda: defaultdict(set))
     for path in sorted(
-        release("imaging/qc_mriqc/hbcd/rawdata").glob("sub-*/ses-V02/*_ses-V02_scans.tsv")
+        release("imaging/qc_mriqc/hbcd/rawdata").glob(
+            "sub-*/ses-V02/*_ses-V02_scans.tsv"
+        )
     ):
         with path.open(errors="ignore") as f:
             for row in csv.DictReader(f, delimiter="\t"):

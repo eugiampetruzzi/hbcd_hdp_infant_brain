@@ -8,7 +8,9 @@ def test_env_file_preserves_explicit_settings(modules, tmp_path, monkeypatch):
     monkeypatch.setenv("SYNTH_EXISTING", "explicit")
     monkeypatch.delenv("SYNTH_NEW", raising=False)
     path = tmp_path / "settings.env"
-    path.write_text("#comment=value\nSYNTH_EXISTING=file\nSYNTH_NEW = a=b \ninvalid\n =ignored\n")
+    path.write_text(
+        "#comment=value\nSYNTH_EXISTING=file\nSYNTH_NEW = a=b \ninvalid\n =ignored\n"
+    )
     m._read_env(path)
     assert os.environ["SYNTH_EXISTING"] == "explicit"
     assert os.environ["SYNTH_NEW"] == "a=b"
@@ -30,6 +32,8 @@ def test_data_root_required_without_env_file(modules, monkeypatch):
 
     monkeypatch.delenv("HBCD_HDP_DATA")
     original_exists = Path.exists
-    monkeypatch.setattr(Path, "exists", lambda p: False if p.name == ".env" else original_exists(p))
+    monkeypatch.setattr(
+        Path, "exists", lambda p: False if p.name == ".env" else original_exists(p)
+    )
     with pytest.raises(SystemExit, match="HBCD_HDP_DATA"):
         modules("python/config.py")

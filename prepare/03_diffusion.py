@@ -57,7 +57,9 @@ def white_matter_medians(participant, maps):
 
 def main(expected_count=1595):
     """Prepare a release, validating its expected number of complete map sets."""
-    maps = {m: by_participant(f"{entities}_dwimap.nii.gz") for m, entities in MAPS.items()}
+    maps = {
+        m: by_participant(f"{entities}_dwimap.nii.gz") for m, entities in MAPS.items()
+    }
     participants = sorted(set.intersection(*(set(v) for v in maps.values())))
     assert len(participants) == expected_count, len(participants)
     rows = [
@@ -90,7 +92,9 @@ def main(expected_count=1595):
             .reset_index()
         )
         wide.insert(1, "session_id", "ses-V02")
-        wide.to_csv(out / f"v02_bundle_{metric}_masked_median.tsv", sep="\t", index=False)
+        wide.to_csv(
+            out / f"v02_bundle_{metric}_masked_median.tsv", sep="\t", index=False
+        )
 
 
 if __name__ == "__main__":
