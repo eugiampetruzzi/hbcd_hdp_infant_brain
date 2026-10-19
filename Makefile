@@ -36,4 +36,5 @@ tables: sensitivity
 	$(PYTHON) python/tables.py
 
 clean:
+	@test -n "$(HBCD_HDP_DATA)" || (echo "Set HBCD_HDP_DATA in .env" && exit 1)
 	rm -rf "$(HBCD_HDP_DATA)/derivatives"

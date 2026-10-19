@@ -52,6 +52,8 @@ for (m in names(MODALITIES)) {
 results <- do.call(rbind, results)
 results$n_control <- results$n - results$n_hdp
 results$q <- ave(results$p, results$model_set, FUN = function(p) p.adjust(p, "BH"))
+# Minimum detectable effect: 80% power at two-sided alpha = .05.
+results$mde <- 2.8 * results$se
 write_table(results, "global_models.csv")
 write_table(do.call(rbind, diagnostics), "harmonization_diagnostics.csv")
 write_table(do.call(rbind, batches), "analytic_samples.csv")

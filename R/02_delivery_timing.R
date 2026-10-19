@@ -1,6 +1,6 @@
 # Gestational age at birth at matched PMA: smooth GA associations, HDP x GA difference
 # smooths (full range and 35-40 wk), 37-38 vs >=39 wk among term births, and the HDP
-# thickness difference within GA bands.
+# thickness difference within GA bands, and a bootstrap of the portion accounted for by GA.
 
 source("R/common.R")
 
@@ -65,8 +65,8 @@ for (m in c("Diffusion MRI", "Structural MRI")) {
   ys <- names(MODALITIES[[m]]$outcomes)
   d <- in_final(modality_sample(frames, m), m)
   d <- drop_small_batches(d[d[[GA]] >= 37, ])
-  h <- harmonize(d, ys, paste(HDP, "sex_m", GA, smooth(PMA), sep = " + "))
-  h$early_term <- as.numeric(h[[GA]] < 39)
+  d$early_term <- as.numeric(d[[GA]] < 39)
+  h <- harmonize(d, ys, paste(HDP, "sex_m", "early_term", smooth(PMA), sep = " + "))
   for (y in ys) {
     term[[length(term) + 1]] <- cbind(
       outcome = MODALITIES[[m]]$outcomes[[y]], n_early_term = sum(h$early_term),
@@ -77,19 +77,43 @@ term <- do.call(rbind, term)
 term$q <- p.adjust(term$p, "BH")
 write_table(term, "term_contrast.csv")
 
-# HDP thickness difference within GA bands; smaller bands keep batches with >= 5 infants.
+# HDP thickness difference within GA bands, with the primary batch and smoothing rules.
 m <- "Structural MRI"
 bands <- list("<37" = c(0, 36), "37-38" = c(37, 38), ">=39" = c(39, 99))
 band <- do.call(rbind, lapply(names(bands), function(b) {
-  d <- in_final(modality_sample(frames, m, min_n = 1), m)
-  d <- drop_small_batches(d[d[[GA]] >= bands[[b]][1] & d[[GA]] <= bands[[b]][2], ], min_n = 5)
-  ys <- names(MODALITIES[[m]]$outcomes)
-  h <- harmonize(d, ys, paste(HDP, "sex_m", smooth(PMA, 6), sep = " + "))
-  rhs <- paste(HDP, "sex_m", MODALITIES[[m]]$qc, smooth(PMA, 6), sep = " + ")
-  cbind(band = b, fit_term(h, "global_area_weighted_thickness", rhs))
+  d <- in_final(modality_sample(frames, m), m)
+  d <- drop_small_batches(d[d[[GA]] >= bands[[b]][1] & d[[GA]] <= bands[[b]][2], ])
+  if (sum(d[[HDP]]) < 20) return(NULL)
+  h <- harmonize(d, names(MODALITIES[[m]]$outcomes), harmonization_rhs())
+  cbind(band = b, fit_term(h, "global_area_weighted_thickness", primary_rhs(m)))
 }))
 write_table(band, "thickness_by_ga_band.csv")
+
+# Portion of the HDP thickness difference accounted for by GA: bootstrap of infants, refitting
+# the primary and GA-adjusted models on data harmonized once in the full sample.
+d <- in_final(modality_sample(frames, m), m)
+ys <- names(MODALITIES[[m]]$outcomes)
+y <- "global_area_weighted_thickness"
+h_total <- harmonize(d, ys, harmonization_rhs()); h_ga <- harmonize(d, ys, harmonization_rhs(ga = TRUE))
+hdp_beta <- function(h, ga) {
+  h$z <- zscore(h[[y]])
+  coef(gam(as.formula(paste("z ~", primary_rhs(m, ga = ga))), data = h, method = "REML"))[[HDP]]
+}
+set.seed(20261018)
+total <- hdp_beta(h_total, FALSE); remaining <- hdp_beta(h_ga, TRUE)
+boot <- replicate(500, {
+  i <- sample(nrow(h_total), replace = TRUE)
+  c(hdp_beta(h_total[i, ], FALSE), hdp_beta(h_ga[i, ], TRUE))
+})
+accounted <- boot[1, ] - boot[2, ]
+portion <- data.frame(total = total, remaining = remaining, accounted = total - remaining,
+                      accounted_lo = quantile(accounted, .025), accounted_hi = quantile(accounted, .975),
+                      proportion = (total - remaining) / total,
+                      proportion_lo = quantile(accounted / boot[1, ], .025),
+                      proportion_hi = quantile(accounted / boot[1, ], .975), row.names = NULL)
+write_table(portion, "ga_portion_bootstrap.csv")
 
 print(rbind(full$tests, supported$tests)[, c("range", "outcome", "ga_q", "interaction_q")], digits = 2)
 print(term[, c("outcome", "beta", "ci_lo", "ci_hi", "q")], digits = 2)
 print(band[, c("band", "n", "n_hdp", "beta", "ci_lo", "ci_hi", "p")], digits = 2)
+print(portion, digits = 2)

@@ -37,17 +37,21 @@ binary <- function(v) ifelse(num(v) %in% c(0, 1), num(v), NA)
 first_row <- function(x) x[!duplicated(x[[ID]]), ]
 
 # Any reported prenatal use of each substance on the Timeline Followback (Visits 1 and 2).
+# TLFB weeks 1-2 precede the last menstrual period, so only weeks 3-9 count as prenatal.
 tlfb <- read_input("phenotype/pex_ch_tlfb.csv")
 substance <- data.frame(unique(tlfb[[ID]])); names(substance) <- ID
 for (s in c("nic", "alc", "thc", "opd")) {
-  weeks <- grep(paste0("^pex_ch_tlfb_", s, "_wk_"), names(tlfb), value = TRUE)
+  weeks <- grep(paste0("^pex_ch_tlfb_", s, "_wk_0[3-9]"), names(tlfb), value = TRUE)
   used <- tapply(rowSums(sapply(tlfb[, weeks], num) > 0, na.rm = TRUE) > 0, tlfb[[ID]], any)
   substance[[paste0("tlfb_", s)]] <- as.numeric(used[substance[[ID]]])
 }
 substance$any_substance <- as.numeric(rowSums(substance[, -1]) > 0)
 
 history <- first_row(read_input("phenotype/pex_bm_health_preg__healthhx.csv"))
+# Live births (preghx_002) is skipped for first pregnancies (preghx_001 = 1): nulliparous.
+pregnancies <- num(history$pex_bm_health_preg__healthhx__preghx_001)
 live_births <- num(history$pex_bm_health_preg__healthhx__preghx_002)
+live_births[pregnancies %in% 1 & is.na(live_births)] <- 0
 maternal <- data.frame(history[[ID]], num(history$pex_bm_health_preg__healthhx_011),
                        ifelse(live_births %in% 0:20, as.numeric(live_births == 0), NA),
                        binary(history$pex_bm_health_preg__healthhx__exp__pnv_012))
@@ -163,7 +167,8 @@ rows <- list(
   check("Sociodemographic factors", "+ Household income", extra = c(race, dummies_of("income"))),
   check("Combined adjustment",
         "All sociodemographic, perinatal, maternal health, and substance-use factors and brain volume",
-        extra = c(socio, "other_complication", perinatal, "log_tbv", substances, maternal_health)),
+        extra = c(socio, "other_complication", perinatal, "induced", "cesarean", "log_tbv",
+                  substances, maternal_health)),
   check("Effect modification", "HDP × infant sex", extra = "hdp_x_male", model_extra = HDP, term = "hdp_x_male"))
 
 # Within HDP: subtype contrasts, harmonized on the full sample with HDP preserved.

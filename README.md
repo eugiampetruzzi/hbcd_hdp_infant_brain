@@ -89,7 +89,7 @@ make all
 |---|---|---|---|
 | Preparation (`make prepare`, Carina) | `prepare/01_covariates.R`, `02_scanners.py`, `03_diffusion.py`, `04_structural.py`, `05_functional.py`, `06_model_datasets.R` | Derived inputs above (data directory) | Methods |
 | Harmonization and global models | `R/01_global_models.R` | `tables/global_models.csv`, `analytic_sample.csv` | Table 3 |
-| Delivery timing | `R/02_delivery_timing.R` | `tables/delivery_timing_*.csv`, `term_contrast.csv`, `thickness_by_ga_band.csv` | Figure 3, Results |
+| Delivery timing | `R/02_delivery_timing.R` | `tables/delivery_timing_*.csv`, `term_contrast.csv`, `thickness_by_ga_band.csv`, `ga_portion_bootstrap.csv` | Figure 3, Results |
 | Sensitivity analyses | `R/03_sensitivity.R` | `tables/sensitivity.csv`, `leave_one_scanner_out.csv`, `scanner_interaction.csv` | Table 4 |
 | Regional analyses | `R/04_regional.R` | `tables/regional.csv`, `parcel_networks.csv`, `parcel_artifact_check.csv` | Figure 4, Results |
 | Figures | `R/05_figures.R`, `python/figure4_map.py` | `figures/figure{2,3,4}_*` | Figures 2-4 |
