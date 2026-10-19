@@ -1,9 +1,11 @@
+import runpy
+
 import nibabel as nib
 import numpy as np
 import pandas as pd
 import pytest
 
-from synthetic import (diffusion_files, functional_files, scalar, structural_files,
+from synthetic import (brain_axis, diffusion_files, functional_files, scalar, structural_files,
                        surface, volume, write_tsv)
 
 
@@ -38,6 +40,17 @@ def test_scanner_pipeline_counts_distinct_acquisitions(modules):
     assert row.t2w_unique_scanners == 2
     assert pd.isna(row.t2w_scanner_serial_number)
     assert row.bold_unique_scanners == 0
+
+
+def test_scanner_script_entry_point_writes_metadata(modules):
+    m = modules("prepare/02_scanners.py")
+    path = m.release("imaging/qc_mriqc/hbcd/rawdata/sub-cli/ses-V02/sub-cli_ses-V02_scans.tsv")
+    write_tsv(path, {"filename": ["func/a_bold.nii.gz"], "scanner_serial_number": [456],
+                     "scanner_software": ["v2"]})
+    runpy.run_path(m.__file__, run_name="__main__")
+    data = pd.read_csv(m.DATA / "covariates/v02_scanner_metadata.tsv", sep="\t")
+    assert data.participant_id.tolist() == ["sub-cli"]
+    assert data.bold_scanner_serial_number.tolist() == [456]
 
 
 @pytest.fixture
@@ -85,6 +98,8 @@ def test_diffusion_duplicate_paths_choose_last(diffusion):
 
 def test_diffusion_pipeline_small_release(diffusion):
     m, _, _ = diffusion
+    volume(m.QSIRECON / "a/qsirecon-DIPYDKI/sub-incomplete/ses-V02/dwi/sub-incomplete_ses-V02_space-ACPC_model-tensor_param-fa_dwimap.nii.gz",
+           np.ones((2, 2, 2)))
     m.main(expected_count=1)
     out = m.DATA / "outcomes/diffusion"
     row = pd.read_csv(out / "v02_global_cerebral_wm_fa_md.tsv", sep="\t").iloc[0]
@@ -113,6 +128,17 @@ def test_cortex_preserves_vertex_indices(structural):
     assert set(result) == {"LEFT", "RIGHT"}
     np.testing.assert_array_equal(result["RIGHT"][1], [0, 1, 2, 3, 4])
     np.testing.assert_allclose(result["LEFT"][0], [1, 3, 0, np.nan, 99])
+
+
+def test_cortex_excludes_subcortical_structures(modules, tmp_path):
+    m = modules("prepare/04_structural.py")
+    subcortex = nib.cifti2.cifti2_axes.BrainModelAxis.from_mask(
+        np.ones((1, 1, 1), bool), "ThalamusLeft", np.eye(4))
+    path = scalar(tmp_path / "with_volume.dscalar.nii", list(range(10)) + [999],
+                  brain_axis() + subcortex)
+    data = m.cortex(path)
+    assert set(data) == {"LEFT", "RIGHT"}
+    np.testing.assert_array_equal(data["RIGHT"][0], [5, 6, 7, 8, 9])
 
 
 def test_global_morphometry_weights_hemispheres_and_valid_vertices(structural):
@@ -174,6 +200,17 @@ def test_signed_network_metrics_have_hand_calculated_values(modules):
                                   "mean_negative_participation": 0, "mean_network_connectivity": 0})
 
 
+def test_participation_measures_connections_across_systems(modules):
+    m = modules("prepare/05_functional.py")
+    z = np.array([[0, 2, 1, -1], [2, 0, -1, 1], [1, -1, 0, 2], [-1, 1, 2, 0]])
+    result = m.network_metrics(z, np.array(["A", "A", "B", "B"]))
+    assert result["mean_positive_participation"] == pytest.approx(4 / 9)
+    assert result["mean_negative_participation"] == 0
+    assert result["mean_participation_coefficient"] == pytest.approx(2 / 9)
+    assert result["modularity"] == pytest.approx(7 / 24)
+    assert result["mean_network_connectivity"] == pytest.approx(2 / 3)
+
+
 def test_functional_pipeline_excludes_incomplete_matrices(functional):
     m, path = functional
     functional_files(m.release(m.XCPD), "sub-incomplete", incomplete=True)
@@ -184,6 +221,31 @@ def test_functional_pipeline_excludes_incomplete_matrices(functional):
     assert data.mean_network_connectivity.iloc[0] == pytest.approx((np.arctanh(.5) - 2 * np.arctanh(.25)) / 3)
     qc = pd.read_csv(m.DATA / "covariates/v02_functional_qc.tsv", sep="\t")
     assert len(qc) == 2
+
+
+def test_functional_coverage_boundary_unassigned_and_run_specific_exclusions(modules):
+    m = modules("prepare/05_functional.py")
+    for i in range(5):
+        path = functional_files(m.release(m.XCPD), f"sub-test{i}")
+        frame = pd.read_csv(path, sep="\t", index_col=0)
+        labels = list(frame) + ["None", "L_Sparse_1"]
+        matrix = pd.DataFrame(.1, index=labels, columns=labels)
+        matrix.loc[frame.index, frame.columns] = frame
+        if i == 0:
+            matrix.iloc[0, :] = np.nan
+            matrix.iloc[:, 0] = np.nan
+        if i < 2:
+            matrix.loc["L_Sparse_1", :] = np.nan
+            matrix.loc[:, "L_Sparse_1"] = np.nan
+        write_tsv(path, matrix, index=True)
+        # These deliberately lack motion files: selecting them would fail.
+        for entity in ["run-1", "dir-AP"]:
+            extra = path.with_name(path.name.replace("_task-rest", f"_{entity}_task-rest"))
+            extra.write_bytes(path.read_bytes())
+    m.main(expected_count=5, expected_parcels=4)
+    result = pd.read_csv(m.DATA / "outcomes/functional/v02_functional_network_metrics.tsv", sep="\t")
+    assert result.participant_id.tolist() == [f"sub-test{i}" for i in range(1, 5)]
+    assert result.parcel_count.tolist() == [4] * 4
 
 
 @pytest.mark.parametrize("script", ["03_diffusion", "04_structural", "05_functional"])

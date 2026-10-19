@@ -83,6 +83,38 @@ make prepare            # on Carina only
 make all
 ```
 
+## Python tests without HBCD data
+
+```bash
+uv sync --dev
+uv run pytest
+uv run pytest --cov --cov-report=term-missing
+```
+
+The Python suite generates entirely synthetic participant tables, NIfTI volumes,
+CIFTI scalar/label files, GIFTI surfaces, connectivity matrices, and motion files
+under pytest temporary directories. It does not require the controlled-access
+release, atlas downloads, R, or a local `.env`. All Python functions are exercised,
+including preparation and reporting entry points; R analyses are outside this
+suite's scope. Fixtures are derived from the schemas used by the code, rather than
+verified against an available release header export.
+
+Numerical checks cover scanner normalization, white-matter mask resampling,
+invalid imaging values, surface-area weighting, censoring, signed network metrics,
+participant inclusion, units, missing-data denominators, and correlation reporting.
+Integration tests reopen the generated CSV/Word files and render a synthetic
+surface figure. They do not establish scientific validity on real HBCD data.
+
+Preparation scripts can now be imported without running a pipeline. Their `main()`
+functions accept `expected_count` (and, for functional data, `expected_parcels`),
+so tests can validate small releases. Direct script execution retains the original
+Release 2.1 count checks: 1,595 diffusion participants, 1,442 structural/functional
+scans, and 276 retained functional parcels.
+
+Coverage must remain at least 98% of Python statements. The tests call entry
+points directly; five `if __name__ == "__main__"` dispatch calls are the only
+currently uncovered statements.
+
 ## Pipeline
 
 | Step | Script | Output (`derivatives/`) | Manuscript |

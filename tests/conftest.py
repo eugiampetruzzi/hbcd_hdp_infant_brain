@@ -15,6 +15,8 @@ def modules(tmp_path, monkeypatch):
     monkeypatch.setenv("HBCD_HDP_DATA", str(tmp_path / "data"))
     monkeypatch.setenv("HBCD_RELEASE", str(tmp_path / "release"))
     monkeypatch.syspath_prepend(str(ROOT / "python"))
+    original_exists = Path.exists
+    monkeypatch.setattr(Path, "exists", lambda p: False if p == ROOT / ".env" else original_exists(p))
     monkeypatch.delitem(sys.modules, "config", raising=False)
     import config
 

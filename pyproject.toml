@@ -16,6 +16,16 @@ dependencies = [
 [tool.uv]
 package = false
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["python", "prepare"]
+
+[tool.coverage.report]
+fail_under = 98
+show_missing = true
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
