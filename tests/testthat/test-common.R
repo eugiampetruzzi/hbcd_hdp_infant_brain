@@ -8,7 +8,10 @@ test_that("shared utilities load without running harmonization", {
 test_that("dotenv preserves explicit environment variables", {
   a <- local_analysis()
   withr::local_envvar(c(SYNTH_EXISTING = "explicit", SYNTH_NEW = NA))
-  writeLines(c("# ignored", "SYNTH_EXISTING=file", "SYNTH_NEW=a=b", "invalid"), "settings.env")
+  writeLines(
+    c("# ignored", "SYNTH_EXISTING=file", "SYNTH_NEW=a=b", "invalid"),
+    "settings.env"
+  )
   a$env$read_env("settings.env")
   expect_identical(Sys.getenv("SYNTH_EXISTING"), "explicit")
   expect_identical(Sys.getenv("SYNTH_NEW"), "a=b")
@@ -17,8 +20,11 @@ test_that("dotenv preserves explicit environment variables", {
 
 test_that("CSV and TSV preserve numeric missingness, names, and participant IDs", {
   e <- local_analysis()$env
-  data <- data.frame(participant_id = c("sub-001", "sub-010"),
-                     value = c(1.25, NA_real_), check.names = FALSE)
+  data <- data.frame(
+    participant_id = c("sub-001", "sub-010"),
+    value = c(1.25, NA_real_),
+    check.names = FALSE
+  )
   data[["region-name"]] <- c(2, 3)
   for (extension in c("csv", "tsv")) {
     rel <- paste0("nested/roundtrip.", extension)
@@ -72,7 +78,10 @@ test_that("modality joins use participant identity and current diffusion outcome
   expected <- synthetic_frames()
   scanners <- write_modality_inputs(a, expected)
   scanners$dwi_unique_scanners[1] <- 2L
-  a$env$write_input(scanners[nrow(scanners):1, ], "covariates/v02_scanner_metadata.tsv")
+  a$env$write_input(
+    scanners[nrow(scanners):1, ],
+    "covariates/v02_scanner_metadata.tsv"
+  )
   frames <- a$env$load_modalities()
   expect_identical(names(frames), names(expected))
   expect_true(is.na(frames[[1]]$batch[1]))
@@ -107,10 +116,22 @@ test_that("formulas preserve exposure and age and include modality-specific QC",
   e <- local_analysis()$env
   expect_equal(e$smooth("age", k = 5), "s(age, k = 5)")
   rhs <- e$primary_rhs("Functional MRI", extra = "bmi", ga = TRUE)
-  expect_setequal(all.vars(as.formula(paste("y ~", rhs))),
-                  c("y", "primary_hdp", "sex_m", "mean_fd_post_censoring",
-                    "retained_duration_minutes", "bmi", "pma", "ga_delivery"))
+  expect_setequal(
+    all.vars(as.formula(paste("y ~", rhs))),
+    c(
+      "y",
+      "primary_hdp",
+      "sex_m",
+      "mean_fd_post_censoring",
+      "retained_duration_minutes",
+      "bmi",
+      "pma",
+      "ga_delivery"
+    )
+  )
   preserved <- e$harmonization_rhs(extra = "bmi", ga = TRUE)
-  expect_setequal(all.vars(as.formula(paste("y ~", preserved))),
-                  c("y", "primary_hdp", "sex_m", "bmi", "pma", "ga_delivery"))
+  expect_setequal(
+    all.vars(as.formula(paste("y ~", preserved))),
+    c("y", "primary_hdp", "sex_m", "bmi", "pma", "ga_delivery")
+  )
 })

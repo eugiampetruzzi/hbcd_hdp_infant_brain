@@ -1,6 +1,5 @@
 suppressPackageStartupMessages({
   library(mgcv)
-  library(ComBatFamily)
 })
 
 read_env <- function(path = ".env") {
@@ -176,7 +175,7 @@ smooth <- function(x, k = K) paste0("s(", x, ", k = ", k, ")")
 harmonize <- function(d, ys, rhs, eb = FALSE) {
   f <- as.formula(paste("y ~", rhs))
   covars <- d[, all.vars(f)[-1], drop = FALSE]
-  d[, ys] <- covfam(
+  d[, ys] <- ComBatFamily::covfam(
     as.matrix(d[, ys]),
     factor(d$batch),
     covars,
