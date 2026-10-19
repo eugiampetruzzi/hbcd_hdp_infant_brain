@@ -28,7 +28,6 @@ Paths are relative to the release root. `XCP-D` is
 | `pregnancy_exposure/pex_bm_healthv2_inf.tsv` | Visit 2 infant health (birth weight, NICU) |
 | `pregnancy_exposure/pex_bm_health_preg__{healthhx,meds}.tsv`, `pex_ch_tlfb.tsv` | Visit 1 health history and medications; Timeline Followback |
 | `imaging/qc_mriqc/hbcd/rawdata/sub-*/ses-V02/*_scans.tsv` | Scanner serial number and software version per acquisition |
-| `imaging/qc_mriqc/img_mriqc_T2w.tsv` | MRIQC T2w image-quality metrics |
 | `imaging/qc_brainswipes/img_brainswipes_xcpd_hash-0f306a2f+0ef9c88a_T2w.tsv` | BrainSwipes score and postnatal age at the structural scan |
 | `imaging/struct_bibsnet/img_bibsnet_space-T2w_desc-aseg_volumes.tsv` | BIBSNet T2w segmentation volumes |
 | `imaging/dwi_qsiprep/img_qsiprep_space-ACPC_desc-image_qc.tsv` | Neighboring-DWI correlation and postnatal age at the diffusion scan |
@@ -59,7 +58,6 @@ files, which are downloaded from the sources listed. The analysis stage reads th
 | `outcomes/diffusion/v02_bundle_{fa,md,mkt}_masked_median.tsv` | Bundle medians from QSIRecon |
 | `outcomes/functional/v02_functional_network_metrics.tsv` | Functional network summaries |
 | `outcomes/structural/v02_myerslabonte_{thickness,sulc}.tsv` | Myers-Labonté parcel thickness and sulcal depth |
-| `covariates/img_mriqc_T2w.tsv` | MRIQC T2w image-quality metrics (gray/white intensities, CJV, CNR) |
 | `phenotype/pex_bm_healthv2_inf.csv` | Visit 2 infant health questionnaire (birth weight, NICU) |
 | `phenotype/pex_bm_healthv2_preg.csv` | Visit 2 pregnancy health (gestational diabetes, aspirin, labor, delivery, medications) |
 | `phenotype/pex_bm_health_preg__healthhx.csv` | Visit 1 health history (pre-pregnancy BMI, live births, aspirin) |

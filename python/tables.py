@@ -338,9 +338,9 @@ def main():
               "Birth weight for gestational age is a sex-specific z score computed within this sample from "
               "caregiver-reported birth weight; fetal growth restriction and neonatal intensive care admission were "
               "caregiver-reported. Total brain volume was summed from BIBSNet tissue segmentations. "
-              "Gray/white contrast was indexed by three T2-weighted MRIQC measures entered together. Substance use was "
-              "any reported prenatal use on the Timeline Followback. Multiple gestation was identified from reported "
-              "reasons for cesarean delivery. The combined-adjustment model was restricted to infants with complete "
+              "Substance use was any reported use on the Timeline Followback from the last menstrual period "
+              "onward. Multiple gestation was identified from reported reasons for cesarean delivery. "
+              "The combined-adjustment model was restricted to infants with complete "
               "data on all covariates. The effect-modification row gives the HDP × infant sex interaction "
               "coefficient. Confidence intervals and p values use heteroskedasticity-robust standard errors. HDP = "
               "hypertensive disorder of pregnancy; NICU = neonatal intensive care unit.")

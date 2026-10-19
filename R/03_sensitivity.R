@@ -84,20 +84,12 @@ treated <- merge(data.frame(participant_id = meds[[ID]], v1 = any_code(meds, v1_
                  data.frame(participant_id = pregnancy[[ID]], v2 = any_code(pregnancy, v2_codes)), by = ID, all = TRUE)
 treated$antihypertensive <- as.numeric(treated$v1 %in% TRUE | treated$v2 %in% TRUE)
 
-# T2-weighted gray/white contrast from MRIQC.
-mriqc <- read_input("covariates/img_mriqc_T2w.tsv")
-mriqc <- first_row(mriqc[mriqc$session_id == "ses-V02", ])
-gm <- mriqc$img_mriqc_T2w_summary_gm_median; wm <- mriqc$img_mriqc_T2w_summary_wm_median
-contrast <- data.frame(mriqc[[ID]], as.numeric(scale((wm - gm) / ((wm + gm) / 2))),
-                       as.numeric(scale(mriqc$img_mriqc_T2w_cjv)), as.numeric(scale(mriqc$img_mriqc_T2w_cnr)))
-names(contrast) <- c(ID, "gw_contrast", "cjv", "cnr")
-
 d0 <- modality_sample(frames, m, extra = "chronic_hypertension")
 d0 <- d0[d0[[ID]] %in% final[[ID]][final$in_structural], ]
 for (x in list(births[, c(ID, "bw_ga_z")], infant[, c(ID, "nicu")],
                complications[, c(ID, "other_complication", "preeclampsia_eclampsia", "fgr")],
                volume[, c(ID, "log_tbv")], person, substance, maternal, chronic[, c(ID, "pregest_diabetes")],
-               delivery, treated[, c(ID, "antihypertensive")], contrast)) {
+               delivery, treated[, c(ID, "antihypertensive")])) {
   d0 <- merge(d0, x, by = ID, all.x = TRUE)
 }
 d0$diabetes <- as.numeric(d0$pregest_diabetes %in% 1 | d0$gest_diabetes %in% 1)
@@ -137,8 +129,6 @@ rows <- list(
         model_extra = "factor(batch)", harmonized = FALSE),
   check("Imaging-related factors", "Image quality as a smooth term", qc = smooth(QC, 5)),
   check("Imaging-related factors", "Highest-quality half of scans", d = d0[best_qc, ]),
-  check("Imaging-related factors", "Gray/white contrast (T2-weighted contrast, CJV, CNR)",
-        extra = c("gw_contrast", "cjv", "cnr")),
   check("Imaging-related factors", "Total brain volume", extra = "log_tbv"),
   check("Perinatal factors", "Birth weight for gestational age", extra = "bw_ga_z"),
   check("Perinatal factors", "Fetal growth restriction", extra = "fgr"),

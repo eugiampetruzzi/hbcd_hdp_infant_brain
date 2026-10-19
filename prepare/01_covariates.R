@@ -67,9 +67,6 @@ tbv[(rowSums(hemi[[1]]) <= 0 | rowSums(hemi[[2]]) <= 0 | tbv <= 0 | rowSums(part
 write_input(data.frame(participant_id = bibsnet[[ID]], total_brain_volume_mm3 = tbv),
             "covariates/v02_bibsnet_brain_volume.tsv")
 
-stopifnot(file.copy(file.path(RELEASE, "imaging/qc_mriqc/img_mriqc_T2w.tsv"),
-                    file.path(DATA, "covariates/img_mriqc_T2w.tsv"), overwrite = TRUE))
-
 for (table in c("pex_bm_healthv2_inf", "pex_bm_healthv2_preg", "pex_bm_health_preg__healthhx",
                 "pex_bm_health_preg__chroncond", "pex_bm_health_preg__meds", "pex_ch_tlfb")) {
   x <- read_release(paste0("pregnancy_exposure/", table, ".tsv"), colClasses = "character",
