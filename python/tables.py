@@ -22,6 +22,7 @@ INCOME = {1: "Less than $10,000", 2: "$10,000 to $24,999", 3: "$25,000 to $49,99
           7: "$200,000 or more"}
 RACE = {3: "Non-Hispanic White", 1: "Non-Hispanic Black", 2: "Hispanic or Latino",
         4: "More than one option selected", 0: "Non-Hispanic Asian"}
+LABOR = {0: "Spontaneous", 1: "Induced", 2: "No labor"}
 
 
 def read(rel):
@@ -57,6 +58,13 @@ def characteristics(sample):
     d = (d.merge(person[[ID, "site", "mother_age", "education", "income", "race_eth"]], on=ID, how="left")
           .merge(complications[[ID, "gestational_hypertension", "preeclampsia_eclampsia",
                                 "other_complication"]], on=ID, how="left"))
+    pregnancy = read("phenotype/pex_bm_healthv2_preg.csv").drop_duplicates(ID)[
+        [ID, "pex_bm_healthv2_preg__outcome_001", "pex_bm_healthv2_preg__outcome_002"]].copy()
+    pregnancy["labor"] = pregnancy.pex_bm_healthv2_preg__outcome_001.where(
+        pregnancy.pex_bm_healthv2_preg__outcome_001.isin(LABOR))
+    pregnancy["cesarean"] = pregnancy.pex_bm_healthv2_preg__outcome_002.where(
+        pregnancy.pex_bm_healthv2_preg__outcome_002.isin([0, 1]))
+    d = d.merge(pregnancy[[ID, "labor", "cesarean"]], on=ID, how="left")
     diffusion = read("outcomes/diffusion/v02_global_cerebral_wm_fa_md.tsv")
     diffusion["md_1e3"] = diffusion.global_median_md * 1000
     network = read("outcomes/functional/v02_functional_network_metrics.tsv")
@@ -113,7 +121,9 @@ def table1(d, n_dwi, n_smri, n_fmri):
             + [section("Total household income, n (%)")] + category_rows("income", INCOME)
             + [section("Maternal race and ethnicity, n (%)")] + category_rows("race_eth", RACE)
             + [mean_row("ga_delivery", "Gestational age at birth, weeks"),
-               count_row("preterm", "Preterm birth (< 37 weeks), n (%)"),
+               count_row("preterm", "Preterm birth (< 37 weeks), n (%)")]
+            + [section("Labor onset, n (%)")] + category_rows("labor", LABOR)
+            + [count_row("cesarean", "Cesarean delivery, n (%)"),
                count_row("child_sex", "Infant male sex, n (%)"),
                mean_row("candidate_age_weeks", "Postnatal age at scan, weeks"),
                mean_row("pma", "Postmenstrual age at scan, weeks"),
