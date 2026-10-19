@@ -65,9 +65,11 @@ labor <- num(pregnancy$pex_bm_healthv2_preg__outcome_001)
 delivery <- data.frame(pregnancy[[ID]], binary(pregnancy$pex_bm_healthv2_preg__compl_001___1),
                        binary(pregnancy$pex_bm_healthv2_preg__exp__pnv_012),
                        ifelse(labor %in% 0:2, as.numeric(labor == 1), NA),
+                       ifelse(labor %in% 0:2, as.numeric(labor == 2), NA),
                        binary(pregnancy$pex_bm_healthv2_preg__outcome_002),
                        binary(pregnancy$pex_bm_healthv2_preg__outcome_002__01___13))
-names(delivery) <- c(ID, "gest_diabetes", "aspirin_v2", "induced", "cesarean", "multiple_gestation")
+# Labor onset: spontaneous (reference), induced, or no labor (planned cesarean).
+names(delivery) <- c(ID, "gest_diabetes", "aspirin_v2", "induced", "no_labor", "cesarean", "multiple_gestation")
 
 # Antihypertensive use: RxNorm codes recorded at Visit 1 or 2 that Visit 1 names as an antihypertensive.
 meds <- first_row(read_input("phenotype/pex_bm_health_preg__meds.csv"))
@@ -119,6 +121,7 @@ socio <- c(race, dummies_of("education"), dummies_of("income"))
 perinatal <- c("bw_ga_z", "fgr", "nicu")
 substances <- c("tlfb_nic", "tlfb_alc", "tlfb_thc", "tlfb_opd")
 maternal_health <- c("bmi", "nulliparous", "diabetes")
+labor_onset <- c("induced", "no_labor")
 best_qc <- d0[[QC]] >= median(d0[[QC]])
 
 rows <- list(
@@ -139,7 +142,7 @@ rows <- list(
   check("Perinatal factors", "Excluding births < 32 weeks", d = d0[d0[[GA]] >= 32, ]),
   check("Perinatal factors", "Excluding births < 37 weeks", d = d0[d0[[GA]] >= 37, ]),
   check("Perinatal factors", "Excluding multiple gestations", d = d0[!(d0$multiple_gestation %in% 1), ]),
-  check("Perinatal factors", "Induction of labor and cesarean delivery", extra = c("induced", "cesarean")),
+  check("Perinatal factors", "Labor onset (spontaneous, induced, no labor)", extra = labor_onset),
   check("Co-occurring pregnancy complications", "Adjusted for co-occurring complications",
         extra = "other_complication"),
   check("Co-occurring pregnancy complications", "Excluding co-occurring complications",
@@ -157,7 +160,7 @@ rows <- list(
   check("Sociodemographic factors", "+ Household income", extra = c(race, dummies_of("income"))),
   check("Combined adjustment",
         "All sociodemographic, perinatal, maternal health, and substance-use factors and brain volume",
-        extra = c(socio, "other_complication", perinatal, "induced", "cesarean", "log_tbv",
+        extra = c(socio, "other_complication", perinatal, labor_onset, "cesarean", "log_tbv",
                   substances, maternal_health)),
   check("Effect modification", "HDP × infant sex", extra = "hdp_x_male", model_extra = HDP, term = "hdp_x_male"))
 
@@ -193,6 +196,30 @@ lr <- anova(gam(as.formula(base), data = h, method = "ML"),
 write_table(data.frame(df = lr$Df[2], deviance = lr$Deviance[2], p = lr$`Pr(>Chi)`[2]),
             "scanner_interaction.csv")
 
+# HDP x labor onset: likelihood-ratio test on ML fits, and the HDP difference within each onset.
+d <- d0[complete.cases(d0[, labor_onset]), ]
+d$hdp_induced <- d[[HDP]] * d$induced; d$hdp_no_labor <- d[[HDP]] * d$no_labor
+interaction <- c("hdp_induced", "hdp_no_labor")
+h <- harmonize(drop_small_batches(d), ys, harmonization_rhs(c(labor_onset, interaction)))
+h$z <- zscore(h[[Y]])
+f_main <- paste("z ~", primary_rhs(m, extra = labor_onset))
+f_int <- paste(f_main, "+", paste(interaction, collapse = " + "))
+lr_labor <- anova(gam(as.formula(f_main), data = h, method = "ML"),
+                  gam(as.formula(f_int), data = h, method = "ML"), test = "Chisq")
+g <- gam(as.formula(f_int), data = h, method = "REML")
+b <- coef(g); V <- vcov(g, sandwich = TRUE)
+onset <- list(Spontaneous = character(0), Induced = "hdp_induced", "No labor" = "hdp_no_labor")
+labor_rows <- do.call(rbind, lapply(names(onset), function(o) {
+  w <- setNames(as.numeric(names(b) %in% c(HDP, onset[[o]])), names(b))
+  est <- sum(w * b); se <- sqrt(drop(t(w) %*% V %*% w))
+  in_onset <- if (o == "Spontaneous") h$induced == 0 & h$no_labor == 0 else h[[sub("hdp_", "", onset[[o]])]] == 1
+  data.frame(onset = o, n = sum(in_onset), n_hdp = sum(in_onset & h[[HDP]] == 1), beta = est, se = se,
+             ci_lo = est - 1.96 * se, ci_hi = est + 1.96 * se, p = 2 * pnorm(-abs(est / se)))
+}))
+labor_rows$interaction_df <- lr_labor$Df[2]; labor_rows$interaction_p <- lr_labor$`Pr(>Chi)`[2]
+write_table(labor_rows, "labor_onset.csv")
+
 print(sensitivity[, c("analysis", "n", "n_hdp", "beta", "ci_lo", "ci_hi", "p")], digits = 2)
 cat(sprintf("Leave-one-scanner-out: %.2f to %.2f; HDP x scanner p = %.2f\n",
             min(loso$beta), max(loso$beta), lr$`Pr(>Chi)`[2]))
+print(labor_rows, digits = 2)
