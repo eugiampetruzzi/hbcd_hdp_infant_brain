@@ -31,3 +31,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
 ]
+
+# avoids errors due to black running in 3.14
+[tool.black]
+target-version = ["py311"]
