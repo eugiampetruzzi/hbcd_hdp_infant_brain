@@ -89,7 +89,7 @@ band <- do.call(rbind, lapply(names(bands), function(b) {
 }))
 write_table(band, "thickness_by_ga_band.csv")
 
-# Portion of the HDP thickness difference accounted for by GA: bootstrap of infants, refitting
+# Portion of the HDP thickness difference accounted for by GA: 10,000 bootstrap resamples, refitting
 # the primary and GA-adjusted models on data harmonized once in the full sample.
 d <- in_final(modality_sample(frames, m), m)
 ys <- names(MODALITIES[[m]]$outcomes)
@@ -101,7 +101,7 @@ hdp_beta <- function(h, ga) {
 }
 set.seed(20261018)
 total <- hdp_beta(h_total, FALSE); remaining <- hdp_beta(h_ga, TRUE)
-boot <- replicate(500, {
+boot <- replicate(10000, {
   i <- sample(nrow(h_total), replace = TRUE)
   c(hdp_beta(h_total[i, ], FALSE), hdp_beta(h_ga[i, ], TRUE))
 })
