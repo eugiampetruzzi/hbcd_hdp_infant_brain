@@ -3,9 +3,28 @@ export
 
 PYTHON ?= uv run python
 
-.PHONY: all prepare models timing sensitivity regional figures tables clean
+.PHONY: all prepare models timing sensitivity regional figures tables clean format format-python format-r test test-python test-r test-r-full
 
 all: models timing sensitivity regional figures tables
+
+format: format-python format-r
+
+format-python:
+	uv run black python prepare tests
+
+format-r:
+	uv run air format R prepare tests/testthat tests/testthat.R
+
+test: test-python test-r
+
+test-python:
+	uv run pytest
+
+test-r:
+	uv run Rscript --vanilla tests/testthat.R
+
+test-r-full:
+	uv run Rscript --vanilla tests/testthat.R --require-combat
 
 # Builds the derived inputs from the raw release (HBCD_RELEASE); run on Carina.
 prepare:

@@ -81,6 +81,76 @@ make prepare            # on Carina only
 make all
 ```
 
+## Tests and formatting without HBCD data
+
+Run `make format` to format Python with Black and R with Air. Use
+`make format-python` or `make format-r` to format only one language.
+Run `make test` for both the Python pytest and R testthat suites. Use
+`make test-python` or `make test-r` to run one language. These targets use uv and the
+formatters declared in the project's development dependencies.
+
+```bash
+uv sync --dev
+uv run pytest
+uv run pytest --cov --cov-report=term-missing
+```
+
+The Python suite generates entirely synthetic participant tables, NIfTI volumes,
+CIFTI scalar/label files, GIFTI surfaces, connectivity matrices, and motion files
+under pytest temporary directories. It does not require the controlled-access
+release, atlas downloads, R, or a local `.env`. All Python functions are exercised,
+including preparation and reporting entry points; R analyses are outside this
+suite's scope. Fixtures are derived from the schemas used by the code, rather than
+verified against an available release header export.
+
+Numerical checks cover scanner normalization, white-matter mask resampling,
+invalid imaging values, surface-area weighting, censoring, signed network metrics,
+participant inclusion, units, missing-data denominators, and correlation reporting.
+Integration tests reopen the generated CSV/Word files and render a synthetic
+surface figure. They do not establish scientific validity on real HBCD data.
+
+Preparation scripts can now be imported without running a pipeline. Their `main()`
+functions accept `expected_count` (and, for functional data, `expected_parcels`),
+so tests can validate small releases. Direct script execution retains the original
+Release 2.1 count checks: 1,595 diffusion participants, 1,442 structural/functional
+scans, and 276 retained functional parcels.
+
+Coverage must remain at least 98% of Python statements. The tests call entry
+points directly; five `if __name__ == "__main__"` dispatch calls are the only
+currently uncovered statements.
+
+The initial R suite in `tests/testthat/` requires `testthat`, `withr`, and `mgcv`.
+If needed, install the test dependencies into your R library with:
+
+```bash
+uv run Rscript --vanilla -e 'install.packages(c("testthat", "withr", "mgcv"), repos="https://cloud.r-project.org")'
+make test-r
+```
+
+R fixtures use temporary release/data directories and do not read the repository's
+`.env`. Tests cover shared file I/O, participant joins, scanner-batch thresholds,
+complete-case selection, formula construction, standardization, and GAM estimation.
+Effect estimates and robust SEs are checked against a hand-computed example and
+independent OLS/HC1 matrix algebra. Integration tests execute
+`prepare/06_model_datasets.R` against invented release tables to verify visit/run
+matching, age conversion, modality selection, and the five-minute retention boundary.
+
+The real CovBat test is explicitly skipped if `ComBatFamily` is not installed;
+harmonization is never replaced with a mock. Run `make test-r-full` to require that
+dependency and fail instead of skipping. Install ComBatFamily as described in
+[its installation instructions](https://github.com/andy1764/ComBatFamily#1-installation).
+Shared R utilities now load that dependency only when `harmonize()` is called.
+
+This is an initial R suite, not full R function or pipeline coverage. It does not
+yet test the raw questionnaire/exposure preparation, full global-model pipeline,
+delivery-timing bootstrap, sensitivity analyses, regional inference, or R figures.
+The red-team findings concerning missing-to-negative coding, harmonization
+uncertainty, separate standardization of the GA decomposition, prediction bands,
+spatial inference, and signed regional reporting remain unresolved. The ComBat
+test checks a balanced synthetic example; it does not establish inferential
+calibration under scanner/exposure imbalance. Python coverage percentages do not
+include R code.
+
 ## Pipeline
 
 | Step | Script | Output (`derivatives/`) | Manuscript |
