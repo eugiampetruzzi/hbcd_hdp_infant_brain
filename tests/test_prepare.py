@@ -283,6 +283,20 @@ def test_functional_pipeline_excludes_incomplete_matrices(functional):
     assert len(qc) == 2
 
 
+def test_functional_matrix_preserves_none_label_and_aligns_axes(modules, tmp_path):
+    m = modules("prepare/05_functional.py")
+    labels = ["None", "L_A_1", "R_B_1"]
+    expected = np.array([[1, 0.1, 0.2], [0.1, 1, 0.3], [0.2, 0.3, 1]])
+    frame = pd.DataFrame(expected, index=labels, columns=labels)
+    frame = frame.loc[labels[::-1], ["R_B_1", "None", "L_A_1"]]
+    path = tmp_path / "matrix.tsv"
+    write_tsv(path, frame, index=True)
+    matrix, actual_labels = m.read_matrix(path, labels)
+    assert actual_labels == labels
+    np.fill_diagonal(expected, np.nan)
+    np.testing.assert_allclose(matrix, expected, equal_nan=True)
+
+
 def test_functional_coverage_boundary_unassigned_and_run_specific_exclusions(modules):
     m = modules("prepare/05_functional.py")
     for i in range(5):

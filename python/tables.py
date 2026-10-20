@@ -321,7 +321,12 @@ def table2(d, sample):
             r[i, j], p[i, j] = stats.pearsonr(pair[cols[i]], pair[cols[j]])
     lower = np.tril_indices(k, -1)
     q = np.full((k, k), np.nan)
-    q[lower] = multipletests(p[lower], method="fdr_bh")[1]
+    valid = np.isfinite(
+        p[lower]
+    )  # undefined correlations stay blank and outside the FDR family
+    q[lower[0][valid], lower[1][valid]] = multipletests(
+        p[lower][valid], method="fdr_bh"
+    )[1]
     cell = lambda i, j: (
         "—"
         if i == j

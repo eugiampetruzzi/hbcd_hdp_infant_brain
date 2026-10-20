@@ -38,7 +38,7 @@ def figure_data(modules):
         (axes.LabelAxis(["parcels"], [labels]), brain_axis(32492))
     )
     nib.save(
-        nib.Cifti2Image(np.array([[1, 2, 0, 3, 1, 2, 1, 3, 0, 2]], np.int32), header),
+        nib.Cifti2Image(np.array([[1, 3, 0, 3, 1, 2, 2, 2, 0, 2]], np.int32), header),
         m.ATLAS / "parcels.dlabel.nii",
     )
     for hemi in ["L", "R"]:
@@ -60,16 +60,36 @@ def figure_data(modules):
 
 
 def test_parcel_values_use_atlas_order_and_strict_fdr(figure_data):
-    np.testing.assert_array_equal(figure_data.parcel_values(), [0, 0.2, 0, 0])
+    values, parcels = figure_data.parcel_values()
+    np.testing.assert_array_equal(values, [0, 0.2, 0, 0])
+    assert parcels == ["L_A_1", "R_A_2", "L_B_1"]
+
+
+def test_parcel_values_exclude_significant_thinning(figure_data):
+    path = figure_data.TABLES / "regional.csv"
+    regional = pd.read_csv(path)
+    regional.loc[0, "beta"] = -0.2
+    regional.to_csv(path, index=False)
+    values, _ = figure_data.parcel_values()
+    np.testing.assert_array_equal(values, [0, 0, 0, 0])
 
 
 def test_surface_maps_place_values_at_correct_vertices(figure_data):
-    maps = figure_data.surface_maps(np.array([0, 0.1, 0.2, 0.3]))
+    maps = figure_data.surface_maps(
+        np.array([0, 0.1, 0.2, 0.3]), ["L_A_1", "R_A_2", "L_B_1"]
+    )
     assert set(maps) == {"L", "R"}
     assert maps["L"].shape == (32492,)
-    np.testing.assert_allclose(maps["L"][:5], [0.1, 0.2, 0, 0.3, 0.1])
-    np.testing.assert_allclose(maps["R"][:5], [0.2, 0.1, 0.3, 0, 0.2])
+    np.testing.assert_allclose(maps["L"][:5], [0.1, 0.3, 0, 0.3, 0.1])
+    np.testing.assert_allclose(maps["R"][:5], [0.2, 0.2, 0.2, 0, 0.2])
     assert not maps["L"][5:].any()
+
+
+def test_surface_maps_reject_wrong_hemisphere_order(figure_data):
+    with pytest.raises(AssertionError):
+        figure_data.surface_maps(
+            np.array([0, 0.1, 0.2, 0.3]), ["R_A_2", "L_A_1", "L_B_1"]
+        )
 
 
 def test_crop_preserves_colored_region_and_clips_padding(modules):

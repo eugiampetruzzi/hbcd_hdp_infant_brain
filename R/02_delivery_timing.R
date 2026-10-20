@@ -1,6 +1,7 @@
 # Gestational age at birth at matched PMA: smooth GA associations, HDP x GA difference
 # smooths (full range and 35-40 wk), 37-38 vs >=39 wk among term births, and the HDP
-# thickness difference within GA bands, and a bootstrap of the portion accounted for by GA.
+# thickness difference within GA bands, and a bootstrap (re-harmonized per resample) of the
+# portion accounted for by GA.
 
 source("R/common.R")
 
@@ -73,15 +74,23 @@ timing_models <- function(range = NULL) {
         for (q in MODALITIES[[m]]$qc) {
           grid[[q]] <- mean(h[[q]])
         }
-        pr <- predict(inter, grid, se.fit = TRUE)
-        grid$fit <- pr$fit
-        grid$se <- pr$se.fit
-        avg <- aggregate(
-          cbind(fit, se) ~ hdp_o + grid[[GA]],
-          data = grid,
-          FUN = mean
+        # Average the prediction matrix over sex, so the SE accounts for covariance.
+        X <- predict(inter, grid, type = "lpmatrix")
+        cell <- interaction(
+          grid$hdp_o,
+          grid[[GA]],
+          drop = TRUE,
+          lex.order = TRUE
         )
-        names(avg)[2] <- "ga"
+        L <- rowsum(X, cell) / as.vector(table(cell))
+        avg <- unique(data.frame(
+          hdp_o = grid$hdp_o,
+          ga = grid[[GA]],
+          cell = cell
+        ))
+        avg <- avg[match(rownames(L), avg$cell), c("hdp_o", "ga")]
+        avg$fit <- drop(L %*% coef(inter))
+        avg$se <- sqrt(rowSums((L %*% vcov(inter)) * L))
         curves[[length(curves) + 1]] <- cbind(
           outcome = MODALITIES[[m]]$outcomes[[y]],
           avg
@@ -146,39 +155,55 @@ band <- do.call(
 )
 write_table(band, "thickness_by_ga_band.csv")
 
-# Portion of the HDP thickness difference accounted for by GA: 10,000 bootstrap resamples, refitting
-# the primary and GA-adjusted models on data harmonized once in the full sample.
+# Portion of the HDP thickness difference accounted for by GA. Both coefficients are on one
+# scale (mm, re-expressed in SDs of the primary harmonized outcome). The bootstrap resamples
+# infants within scanner batch and re-harmonizes in every resample, so intervals include
+# harmonization uncertainty.
+B <- 10000
 d <- in_final(modality_sample(frames, m), m)
 ys <- names(MODALITIES[[m]]$outcomes)
 y <- "global_area_weighted_thickness"
-h_total <- harmonize(d, ys, harmonization_rhs())
-h_ga <- harmonize(d, ys, harmonization_rhs(ga = TRUE))
-hdp_beta <- function(h, ga) {
-  h$z <- zscore(h[[y]])
+sd_pop <- function(v) sqrt(mean((v - mean(v))^2))
+hdp_mm <- function(h, ga) {
   coef(gam(
-    as.formula(paste("z ~", primary_rhs(m, ga = ga))),
+    as.formula(paste(y, "~", primary_rhs(m, ga = ga))),
     data = h,
     method = "REML"
   ))[[HDP]]
 }
+decompose <- function(d) {
+  h_total <- harmonize(d, ys, harmonization_rhs())
+  h_ga <- harmonize(d, ys, harmonization_rhs(ga = TRUE))
+  s <- sd_pop(h_total[[y]])
+  c(total = hdp_mm(h_total, FALSE) / s, remaining = hdp_mm(h_ga, TRUE) / s)
+}
 set.seed(20261018)
-total <- hdp_beta(h_total, FALSE)
-remaining <- hdp_beta(h_ga, TRUE)
-boot <- replicate(10000, {
-  i <- sample(nrow(h_total), replace = TRUE)
-  c(hdp_beta(h_total[i, ], FALSE), hdp_beta(h_ga[i, ], TRUE))
-})
-accounted <- boot[1, ] - boot[2, ]
+est <- decompose(d)
+by_batch <- split(seq_len(nrow(d)), d$batch)
+boot <- replicate(
+  B,
+  decompose(d[
+    unlist(lapply(by_batch, function(i) {
+      i[sample.int(length(i), replace = TRUE)]
+    })),
+  ])
+)
+accounted <- boot["total", ] - boot["remaining", ]
+ci <- function(v) quantile(v, c(.025, .975), names = FALSE)
 portion <- data.frame(
-  total = total,
-  remaining = remaining,
-  accounted = total - remaining,
-  accounted_lo = quantile(accounted, .025),
-  accounted_hi = quantile(accounted, .975),
-  proportion = (total - remaining) / total,
-  proportion_lo = quantile(accounted / boot[1, ], .025),
-  proportion_hi = quantile(accounted / boot[1, ], .975),
-  row.names = NULL
+  resamples = B,
+  total = est[["total"]],
+  total_lo = ci(boot["total", ])[1],
+  total_hi = ci(boot["total", ])[2],
+  remaining = est[["remaining"]],
+  remaining_lo = ci(boot["remaining", ])[1],
+  remaining_hi = ci(boot["remaining", ])[2],
+  accounted = est[["total"]] - est[["remaining"]],
+  accounted_lo = ci(accounted)[1],
+  accounted_hi = ci(accounted)[2],
+  proportion = 1 - est[["remaining"]] / est[["total"]],
+  proportion_lo = ci(accounted / boot["total", ])[1],
+  proportion_hi = ci(accounted / boot["total", ])[2]
 )
 write_table(portion, "ga_portion_bootstrap.csv")
 

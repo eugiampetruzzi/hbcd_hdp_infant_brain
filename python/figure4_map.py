@@ -30,18 +30,26 @@ def parcel_values():
     ]
     regional = pd.read_csv(TABLES / "regional.csv")
     sig = regional[
-        (regional.metric == "Parcel cortical thickness") & (regional.q < 0.05)
+        (regional.metric == "Parcel cortical thickness")
+        & (regional.q < 0.05)
+        & (regional.beta > 0)
     ]
     beta = dict(zip(sig.feature, sig.beta))
-    return np.array([0.0] + [beta.get(p, 0.0) for p in parcels])
+    return np.array([0.0] + [beta.get(p, 0.0) for p in parcels]), parcels
 
 
-def surface_maps(values):
+def surface_maps(values, parcels):
     img = nib.load(ATLAS / "parcels.dlabel.nii")
     labels = np.asarray(img.get_fdata()).ravel().astype(int)
     maps = {}
     for name, slc, model in img.header.get_axis(1).iter_structures():
         hemi = "L" if name.endswith("LEFT") else "R"
+        # Column order must match atlas label order: every parcel's hemisphere prefix must
+        # agree with the hemisphere its atlas label is drawn on (parcel 1 has no prefix, left).
+        for label in np.unique(labels[slc]):
+            if label > 0:
+                name_hemi = "R" if parcels[label - 1].startswith("R_") else "L"
+                assert name_hemi == hemi, (label, parcels[label - 1], hemi)
         maps[hemi] = np.zeros(32492)
         maps[hemi][model.vertex] = values[labels[slc]]
     return maps
@@ -111,7 +119,7 @@ def compose(map_png, bars_png):
 
 def main():
     map_png = FIGURES / "figure4a_map.png"
-    draw_map(surface_maps(parcel_values()), map_png)
+    draw_map(surface_maps(*parcel_values()), map_png)
     compose(map_png, FIGURES / "figure4b_networks.png")
 
 

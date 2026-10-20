@@ -49,7 +49,12 @@ def white_matter_medians(participant, maps):
     wm = np.isin(labels, WM_LABELS)
     row = {}
     for metric, path in maps.items():
-        values = nib.load(path).get_fdata()[wm]
+        img = nib.load(path)
+        # The white-matter mask is built on the MKT grid; every map must share that grid.
+        assert img.shape[:3] == grid.shape[:3] and np.allclose(
+            img.affine, grid.affine, atol=1e-4
+        ), (participant, metric)
+        values = img.get_fdata()[wm]
         values = values[np.isfinite(values) & (values != 0)]
         row[f"global_median_{metric}"] = np.median(values) if values.size else np.nan
     return row
