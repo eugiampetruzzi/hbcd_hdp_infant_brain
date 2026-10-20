@@ -135,6 +135,13 @@ Effect estimates and robust SEs are checked against a hand-computed example and
 independent OLS/HC1 matrix algebra. Integration tests execute
 `prepare/06_model_datasets.R` against invented release tables to verify visit/run
 matching, age conversion, modality selection, and the five-minute retention boundary.
+The covariate-preparation integration tests also run `prepare/01_covariates.R`
+against an invented 2,175-person exposure cohort that satisfies the production
+release-count check. They verify Release 2.1 paths, longitudinal demographic/site
+selection, exposure groups, missing complications, and tissue-volume exclusions.
+Python tests independently check anatomical versus functional release paths,
+Pearson-based network metrics (including perfect correlations and single-sign
+graphs), parcel alignment, and Figure 4 tiling and rendering.
 
 The real CovBat test is explicitly skipped if `ComBatFamily` is not installed;
 harmonization is never replaced with a mock. Run `make test-r-full` to require that
@@ -143,12 +150,10 @@ dependency and fail instead of skipping. Install ComBatFamily as described in
 Shared R utilities now load that dependency only when `harmonize()` is called.
 
 This is an initial R suite, not full R function or pipeline coverage. It does not
-yet test the raw questionnaire/exposure preparation, full global-model pipeline,
+yet test the full global-model pipeline,
 delivery-timing bootstrap, sensitivity analyses, regional inference, or R figures.
-The red-team findings concerning missing-to-negative coding, harmonization
-uncertainty, separate standardization of the GA decomposition, prediction bands,
-spatial inference, and signed regional reporting remain unresolved. The ComBat
-test checks a balanced synthetic example; it does not establish inferential
+Passing these tests does not validate the complete scientific analysis. In
+particular, the ComBat test checks a balanced synthetic example; it does not establish inferential
 calibration under scanner/exposure imbalance. Python coverage percentages do not
 include R code.
 
