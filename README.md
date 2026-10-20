@@ -21,8 +21,8 @@ Paths are relative to the release root. `XCP-D` is
 
 | File | Contents |
 |---|---|
-| `demographics/sed_basic_demographics.tsv` | Infant sex, gestational age at birth, maternal age, education, income, race and ethnicity |
-| `demographics/par_visit_data.tsv` | Recruitment site |
+| `demographics_sed/sed_basic_demographics.tsv` | Infant sex, gestational age at birth, maternal age, education, income, race and ethnicity |
+| `parent_visit/par_visit_data.tsv` | Recruitment site |
 | `pregnancy_exposure/pex_bm_healthv2_preg.tsv` | Visit 2 pregnancy health (complications, aspirin, labor, delivery, medications) |
 | `pregnancy_exposure/pex_bm_health_preg__chroncond.tsv` | Visit 1 chronic conditions (hypertension, diabetes) |
 | `pregnancy_exposure/pex_bm_healthv2_inf.tsv` | Visit 2 infant health (birth weight, NICU) |

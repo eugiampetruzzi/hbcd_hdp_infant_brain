@@ -7,7 +7,7 @@ source("R/common.R")
 num <- function(v) suppressWarnings(as.numeric(v))
 
 D <- "sed_basic_demographics_"
-demo <- read_release("demographics/sed_basic_demographics.tsv")
+demo <- read_release("demographics_sed/sed_basic_demographics.tsv")
 demo <- demo[order(demo$session_id), ]
 first <- function(col) {
   v <- num(demo[[paste0(D, col)]])
@@ -35,7 +35,7 @@ names(person) <- c(
   "child_sex"
 )
 # Recruitment site as recorded at the most recent visit.
-visits <- read_release("demographics/par_visit_data.tsv")
+visits <- read_release("parent_visit/par_visit_data.tsv")
 visits <- visits[order(visits$session_id, decreasing = TRUE), ]
 site <- visits[!duplicated(visits[[ID]]), c(ID, "par_visit_data_site")]
 names(site)[2] <- "site"
