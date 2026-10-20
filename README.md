@@ -157,6 +157,27 @@ particular, the ComBat test checks a balanced synthetic example; it does not est
 calibration under scanner/exposure imbalance. Python coverage percentages do not
 include R code.
 
+## Extracting release headers
+
+From the repository directory, with `datadir` pointing to the raw HBCD release
+root (the directory containing `imaging/`, `pregnancy_exposure/`, etc.):
+
+```bash
+export datadir=/path/to/HBCD/release
+uv run bash scripts/extract_headers.sh > hbcd_headers.json
+```
+
+On a data machine without uv, `bash scripts/extract_headers.sh > hbcd_headers.json`
+also works; the script requires only Bash and Python 3's standard library.
+The JSON contains each distinct ordered header for the requested file types,
+including hash suffixes, and ordered parcel row labels for connectivity matrices.
+It records generic file patterns and missing file types, but no participant-specific
+filenames or data values. Matrix row labels must match anatomical parcel naming;
+unexpected labels or participant-like identifiers cause extraction to fail without
+printing a partial report. Check the exit status and review the JSON before sharing.
+The script does not extract the separate CIFTI atlas label mapping or data-dictionary
+definitions of units, missing-value codes, and categories.
+
 ## Pipeline
 
 | Step | Script | Output (`derivatives/`) | Manuscript |
