@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Run from the repository: datadir=/path/to/release bash scripts/extract_headers.sh > headers.json
+# With HBCD_RELEASE exported: bash scripts/extract_headers.sh > headers.json
 # Requires Python 3 (standard library only). Reads source files without modifying them.
 set -euo pipefail
 
-if [[ -z "${datadir:-}" || ! -d "$datadir" ]]; then
-    echo 'Set datadir to the HBCD release root directory.' >&2
+if [[ -z "${HBCD_RELEASE:-}" || ! -d "$HBCD_RELEASE" ]]; then
+    echo 'Set HBCD_RELEASE to the HBCD release root directory.' >&2
     exit 1
 fi
-export datadir
+export HBCD_RELEASE
 
 python3 - <<'PY'
 import csv
@@ -87,7 +87,7 @@ def collect(root, pattern, matrix):
 
 
 def main():
-    root = Path(os.environ["datadir"])
+    root = Path(os.environ["HBCD_RELEASE"])
     report = {"format_version": 1, "files": {}}
     for name, pattern in PATTERNS.items():
         try:

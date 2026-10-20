@@ -159,14 +159,15 @@ include R code.
 
 ## Extracting release headers
 
-From the repository directory, with `datadir` pointing to the raw HBCD release
+From the repository directory, with `HBCD_RELEASE` exported and pointing to the raw HBCD release
 root (the directory containing `imaging/`, `pregnancy_exposure/`, etc.):
 
 ```bash
-export datadir=/path/to/HBCD/release
 uv run bash scripts/extract_headers.sh > hbcd_headers.json
 ```
 
+The extractor uses the existing `HBCD_RELEASE` environment variable;
+`HBCD_HDP_DATA` is not needed because these are raw release files.
 On a data machine without uv, `bash scripts/extract_headers.sh > hbcd_headers.json`
 also works; the script requires only Bash and Python 3's standard library.
 The JSON contains each distinct ordered header for the requested file types,
