@@ -93,23 +93,70 @@ fig2 <- (age_histogram(
     seq(40, 50, 2),
     c("≤40", 42, 44, 46, 48, "≥50")
   )) +
-  plot_layout(guides = "collect") +
-  plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") &
   theme(legend.position = "top")
-save_figure(fig2, "figure2_delivery_timing", 183, 68)
+# Figure 2 bottom row: delivery characteristics of the final sample.
+sample_ids <- final[[ID]]
+frames <- load_modalities()
+births <- do.call(rbind, lapply(frames, function(x) x[, c(ID, HDP, GA)]))
+births <- births[!duplicated(births[[ID]]) & births[[ID]] %in% sample_ids, ]
+preg <- read_input("phenotype/pex_bm_healthv2_preg.csv")
+preg <- preg[!duplicated(preg[[ID]]), c(ID, "pex_bm_healthv2_preg__outcome_001", "pex_bm_healthv2_preg__outcome_002")]
+names(preg)[2:3] <- c("labor", "cesarean")
+births <- merge(births, preg, by = ID, all.x = TRUE)
+births$group <- group_factor(births[[HDP]])
+share <- function(var, levels, labels) {
+  out <- do.call(rbind, lapply(split(births, births$group), function(g) {
+    v <- g[[var]][!is.na(g[[var]])]
+    data.frame(group = g$group[1], level = labels, pct = 100 * sapply(levels, function(l) mean(v == l)))
+  }))
+  out$level <- factor(out$level, levels = labels)
+  out
+}
+births$ga_band <- cut(births[[GA]], c(-Inf, 36, 38, Inf), labels = c("<37 wk", "37\u201338 wk", "39+ wk"))
+ga_share <- share("ga_band", c("<37 wk", "37\u201338 wk", "39+ wk"), c("<37 wk", "37\u201338 wk", "39+ wk"))
+births$labor[!births$labor %in% 0:2] <- NA
+births$cesarean[!births$cesarean %in% 0:1] <- NA
+labor_share <- share("labor", 0:2, c("Spontaneous", "Induced", "No labor"))
+cesarean_share <- share("cesarean", 1, "Cesarean")
+# Same axes as panels a-c: y axis in % of infants, plain x-axis title, values above bars.
+bar_panel <- function(d, title, bar_width = .75) {
+  ggplot(d, aes(level, pct, fill = group)) +
+    geom_col(position = position_dodge(bar_width + .05), width = bar_width) +
+    geom_text(
+      aes(label = sprintf("%.0f%%", pct)),
+      position = position_dodge(bar_width + .05),
+      vjust = -.4,
+      size = 2.3
+    ) +
+    scale_fill_manual(values = c(CONTROL, HDP_RED)) +
+    scale_y_continuous(limits = c(0, 80), breaks = seq(0, 80, 20), expand = c(0, 0)) +
+    labs(x = title, y = "Infants (%)") +
+    theme_paper +
+    theme(legend.position = "none")
+}
+delivery_row <- bar_panel(ga_share, "Gestational age at birth") +
+  bar_panel(labor_share, "Labor onset") +
+  bar_panel(cesarean_share, "Delivery", bar_width = .4) +
+  plot_layout(widths = c(1, 1, 1))
+fig2 <- (fig2 / delivery_row) +
+  plot_layout(heights = c(1, 1)) +
+  plot_annotation(tag_levels = "a")
+save_figure(fig2, "figure2_delivery_timing", 183, 125)
 
-# Figure 3: a-e GA curves at matched PMA (35-40 wk); f thickness difference split by GA.
+# Figure 3: structural curves and the thickness split first (a-c), then diffusion (d-f).
+# Curves are predicted on a 0.1-week grid at matched PMA (35-40 wk).
 curves <- read_table("delivery_timing_curves.csv")
 curves$group <- group_factor(curves$hdp_o)
 panels <- c(
+  "Cortical thickness" = "Cortical thickness",
+  "Absolute sulcal depth" = "Sulcal depth",
   "Mean diffusivity" = "Mean diffusivity",
   "Fractional anisotropy" = "Fractional anisotropy",
-  "Mean kurtosis tensor" = "Mean kurtosis",
-  "Cortical thickness" = "Cortical thickness",
-  "Absolute sulcal depth" = "Sulcal depth"
+  "Mean kurtosis tensor" = "Mean kurtosis"
 )
-curve_panel <- function(outcome) {
-  ggplot(
+curve_panel <- function(outcome, x_title = TRUE, legend = FALSE) {
+  p <- ggplot(
     curves[curves$outcome == outcome, ],
     aes(ga, fit, colour = group, fill = group)
   ) +
