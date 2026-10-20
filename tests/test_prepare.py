@@ -154,7 +154,7 @@ def test_surface_triangle_area_distribution(modules, tmp_path):
 @pytest.fixture
 def structural(modules):
     m = modules("prepare/04_structural.py")
-    return m, structural_files(m.release(m.XCPD))
+    return m, structural_files(m.release(m.XCPD_ANAT))
 
 
 def test_cortex_preserves_vertex_indices(structural):

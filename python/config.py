@@ -21,8 +21,10 @@ TABLES = DATA / "derivatives" / "tables"
 FIGURES = DATA / "derivatives" / "figures"
 ATLAS = DATA / "atlas"
 
-# Raw release locations, used only by prepare/. XCPD is relative to HBCD_RELEASE.
+# Raw release locations, used only by prepare/, relative to HBCD_RELEASE. The XCP-D functional
+# and anatomical outputs were released in separate folders.
 XCPD = "imaging/func_xcpd/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a"
+XCPD_ANAT = "imaging/structure_function/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a"
 
 
 def release(rel):

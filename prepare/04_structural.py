@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from config import DATA, XCPD, release
+from config import DATA, XCPD_ANAT, release
 
 ANAT = "sub-*/ses-V02/anat/"
 
@@ -76,7 +76,7 @@ def global_morphometry(thickness_path):
 
 def main(expected_count=1442):
     """Prepare a release, validating its expected number of structural scans."""
-    root = release(XCPD)
+    root = release(XCPD_ANAT)
     paths = sorted(root.glob(ANAT + "*_space-fsLR_den-91k_thickness.dscalar.nii"))
     assert len(paths) == expected_count, len(paths)
     out = DATA / "outcomes/structural"

@@ -17,7 +17,8 @@ All analysis outputs are written to `derivatives/` inside the data directory.
 ### Raw HBCD Release 2.1 files
 
 Paths are relative to the release root. `XCP-D` is
-`imaging/func_xcpd/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a`.
+`imaging/func_xcpd/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a` (functional outputs) and `XCP-D anat` is
+`imaging/structure_function/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a` (anatomical outputs).
 
 | File | Contents |
 |---|---|
@@ -34,8 +35,8 @@ Paths are relative to the release root. `XCP-D` is
 | `imaging/dwi_qsiprep/hbcd/derivatives/qsiprep/sub-*/ses-V02/anat/*_space-ACPC_desc-aseg_dseg.nii.gz` | SynthSeg segmentation (cerebral white matter) |
 | `imaging/dwi_qsirecon/**/qsirecon-DIPYDKI/sub-*/ses-V02/dwi/*_dwimap.nii.gz` | FA (tensor fit), MD and MKT (kurtosis fit) maps |
 | `imaging/dwi_qsirecon/**/qsirecon-DIPYDKI/sub-*/ses-V02/dwi/*_bundles-DSIStudio_scalarstats.tsv` | Bundle FA, MD and MKT medians |
-| `XCP-D/sub-*/ses-V02/anat/*_den-91k_{thickness,sulc}.dscalar.nii`, `*_midthickness.surf.gii` | Vertex-wise thickness and sulcal depth, midthickness surfaces |
-| `XCP-D/sub-*/ses-V02/anat/*_seg-MyersLabonte_stat-mean_desc-{thickness,sulc}_morph.tsv` | Myers-Labonté parcel thickness and sulcal depth |
+| `XCP-D anat/sub-*/ses-V02/anat/*_den-91k_{thickness,sulc}.dscalar.nii`, `*_midthickness.surf.gii` | Vertex-wise thickness and sulcal depth, midthickness surfaces |
+| `XCP-D anat/sub-*/ses-V02/anat/*_seg-MyersLabonte_stat-mean_desc-{thickness,sulc}_morph.tsv` | Myers-Labonté parcel thickness and sulcal depth |
 | `XCP-D/sub-*/ses-V02/func/*task-rest_*_seg-MyersLabonte_stat-pearsoncorrelation_relmat.tsv` | Parcel connectivity of the concatenated resting-state runs |
 | `XCP-D/sub-*/ses-V02/func/*task-rest_{motion,outliers}.tsv` | Framewise displacement and censoring mask |
 
