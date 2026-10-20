@@ -71,13 +71,14 @@ results$hemisphere <- ifelse(parcels, ifelse(grepl("^R_", results$feature), "R",
 write_table(results, "regional.csv")
 
 thick <- results[parcels, ]
-spearman <- function(x) cor.test(thick$beta, x, method = "spearman", exact = FALSE)
+# Descriptive only: parcels are spatially dependent and share infants, so no p-values.
 artifact <- data.frame(comparison = c("image quality", "scanner"),
-                       rho = c(spearman(thick$qc_beta)$estimate, spearman(thick$scanner_eta2)$estimate),
-                       p = c(spearman(thick$qc_beta)$p.value, spearman(thick$scanner_eta2)$p.value))
+                       rho = c(cor(thick$beta, thick$qc_beta, method = "spearman"),
+                               cor(thick$beta, thick$scanner_eta2, method = "spearman")))
 write_table(artifact, "parcel_artifact_check.csv")
 
-networks <- aggregate(cbind(parcels = 1, significant = q < .05) ~ network, data = thick, FUN = sum)
+thick$thicker <- thick$q < .05 & thick$beta > 0; thick$thinner <- thick$q < .05 & thick$beta < 0
+networks <- aggregate(cbind(parcels = 1, significant = thicker, thinner) ~ network, data = thick, FUN = sum)
 write_table(networks, "parcel_networks.csv")
 
 print(aggregate(cbind(significant = q < .05, total = 1) ~ metric, data = results, FUN = sum))

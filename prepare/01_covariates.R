@@ -34,7 +34,9 @@ exposure <- data.frame(pregnancy[[ID]], sapply(paste0("pex_bm_healthv2_preg__com
                                                function(x) num(pregnancy[[x]])))
 names(exposure) <- c(ID, items)
 other <- setdiff(items, c("gestational_hypertension", "preeclampsia_eclampsia"))
-exposure$other_complication <- as.integer(rowSums(exposure[other] == 1, na.rm = TRUE) > 0)
+# Any other complication; unknown only if every item is missing.
+exposure$other_complication <- ifelse(rowSums(exposure[other] == 1, na.rm = TRUE) > 0, 1L,
+                                      ifelse(rowSums(!is.na(exposure[other])) == 0, NA_integer_, 0L))
 
 chronic <- read_release("pregnancy_exposure/pex_bm_health_preg__chroncond.tsv")
 chronic <- chronic[chronic$session_id == "ses-V01", ]

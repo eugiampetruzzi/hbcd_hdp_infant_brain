@@ -34,6 +34,11 @@ person <- person[!duplicated(person[[ID]]), c(ID, "mother_age", "education", "in
 
 num <- function(v) suppressWarnings(as.numeric(v))
 binary <- function(v) ifelse(num(v) %in% c(0, 1), num(v), NA)
+# 1 if any item is 1, NA if every item is unknown, otherwise 0.
+any_yes <- function(...) {
+  x <- cbind(...)
+  ifelse(rowSums(x == 1, na.rm = TRUE) > 0, 1, ifelse(rowSums(!is.na(x)) == 0, NA, 0))
+}
 first_row <- function(x) x[!duplicated(x[[ID]]), ]
 
 # Any reported prenatal use of each substance on the Timeline Followback (Visits 1 and 2).
@@ -42,8 +47,10 @@ tlfb <- read_input("phenotype/pex_ch_tlfb.csv")
 substance <- data.frame(unique(tlfb[[ID]])); names(substance) <- ID
 for (s in c("nic", "alc", "thc", "opd")) {
   weeks <- grep(paste0("^pex_ch_tlfb_", s, "_wk_0[3-9]"), names(tlfb), value = TRUE)
-  used <- tapply(rowSums(sapply(tlfb[, weeks], num) > 0, na.rm = TRUE) > 0, tlfb[[ID]], any)
-  substance[[paste0("tlfb_", s)]] <- as.numeric(used[substance[[ID]]])
+  x <- sapply(tlfb[, weeks], num)
+  used <- tapply(rowSums(x > 0, na.rm = TRUE) > 0, tlfb[[ID]], any)
+  answered <- tapply(rowSums(!is.na(x)) > 0, tlfb[[ID]], any)
+  substance[[paste0("tlfb_", s)]] <- ifelse(answered[substance[[ID]]], as.numeric(used[substance[[ID]]]), NA)
 }
 substance$any_substance <- as.numeric(rowSums(substance[, -1]) > 0)
 
@@ -58,8 +65,8 @@ maternal <- data.frame(history[[ID]], num(history$pex_bm_health_preg__healthhx_0
 names(maternal) <- c(ID, "bmi", "nulliparous", "aspirin_v1")
 maternal$bmi[!(maternal$bmi > 13 & maternal$bmi < 70)] <- NA
 chronic <- first_row(read_input("phenotype/pex_bm_health_preg__chroncond.csv"))
-chronic$pregest_diabetes <- as.numeric(binary(chronic$pex_bm_health_preg__chroncond_001___3) %in% 1 |
-                                       binary(chronic$pex_bm_health_preg__chroncond_001___4) %in% 1)
+chronic$pregest_diabetes <- any_yes(binary(chronic$pex_bm_health_preg__chroncond_001___3),
+                                    binary(chronic$pex_bm_health_preg__chroncond_001___4))
 pregnancy <- first_row(read_input("phenotype/pex_bm_healthv2_preg.csv"))
 labor <- num(pregnancy$pex_bm_healthv2_preg__outcome_001)
 delivery <- data.frame(pregnancy[[ID]], binary(pregnancy$pex_bm_healthv2_preg__compl_001___1),
@@ -94,7 +101,7 @@ for (x in list(births[, c(ID, "bw_ga_z")], infant[, c(ID, "nicu")],
                delivery, treated[, c(ID, "antihypertensive")])) {
   d0 <- merge(d0, x, by = ID, all.x = TRUE)
 }
-d0$diabetes <- as.numeric(d0$pregest_diabetes %in% 1 | d0$gest_diabetes %in% 1)
+d0$diabetes <- any_yes(d0$pregest_diabetes, d0$gest_diabetes)
 d0$aspirin <- ifelse(is.na(d0$aspirin_v1) & is.na(d0$aspirin_v2), NA,
                      as.numeric(d0$aspirin_v1 %in% 1 | d0$aspirin_v2 %in% 1))
 d0$hdp_x_male <- d0[[HDP]] * d0$sex_m
