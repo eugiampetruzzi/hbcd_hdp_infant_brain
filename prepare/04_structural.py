@@ -56,7 +56,8 @@ def global_morphometry(thickness_path):
             / f"{prefix}_hemi-{hemi[0]}_space-fsLR_den-32k_desc-hcp_midthickness.surf.gii"
         )
         w = vertex_areas(surface)[vertices]
-        # Vertices with zero or nonfinite values (medial wall) are left out.
+        # Vertices with zero or nonfinite values (medial wall) are left out. On Carina every
+        # zero sulcal-depth vertex inside the cortex mask also has zero thickness.
         t_ok = np.isfinite(t) & (t != 0) & (w > 0)
         s_ok = np.isfinite(s) & (s != 0) & (w > 0)
         sums += [

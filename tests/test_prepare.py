@@ -277,7 +277,7 @@ def test_functional_pipeline_excludes_incomplete_matrices(functional):
     assert data.participant_id.tolist() == ["sub-test"]
     assert data.parcel_count.tolist() == [4]
     assert data.mean_network_connectivity.iloc[0] == pytest.approx(
-        (np.arctanh(0.5) - 2 * np.arctanh(0.25)) / 3
+        (0.5 - 2 * 0.25) / 3
     )
     qc = pd.read_csv(m.DATA / "covariates/v02_functional_qc.tsv", sep="\t")
     assert len(qc) == 2

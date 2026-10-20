@@ -97,7 +97,8 @@ def main(expected_count=1442, expected_parcels=276):
     for path in paths:
         ids = {"participant_id": path.name.split("_")[0], "session_id": "ses-V02"}
         qc.append({**ids, **motion(path)})
-        z = np.arctanh(read_matrix(path, order)[0][np.ix_(keep, keep)])
+        # Metrics use the Pearson correlations as released (no Fisher transform).
+        z = read_matrix(path, order)[0][np.ix_(keep, keep)]
         np.fill_diagonal(z, 0)
         # Only complete matrices over the retained parcels are summarized.
         if np.isfinite(z).all():
