@@ -12,7 +12,10 @@ COVERAGE = 0.80
 
 
 def read_matrix(path, order=None):
-    m = pd.read_csv(path, sep="\t", index_col=0, na_values="n/a")
+    # "None" names an unassigned parcel; it is not a missing row label.
+    m = pd.read_csv(
+        path, sep="\t", index_col=0, keep_default_na=False, na_values=["n/a", ""]
+    )
     m.columns = [re.sub(r"_hash-.*$", "", c) for c in m.columns]
     m.index = [re.sub(r"_hash-.*$", "", str(c)) for c in m.index]
     # Rows and columns must name the same parcels; every matrix is put in one parcel order.
