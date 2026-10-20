@@ -96,6 +96,19 @@ def write_report_inputs(module):
             "other_complication": np.resize([0, 0, 1, 1], n),
         },
     )
+    pregnancy = pd.DataFrame(
+        {
+            "participant_id": ids,
+            "pex_bm_healthv2_preg__outcome_001": np.resize(
+                np.repeat([0, 1, 2, np.nan], 2), n
+            ),
+            "pex_bm_healthv2_preg__outcome_002": np.resize(
+                np.repeat([0, 1, 1, np.nan], 2), n
+            ),
+        }
+    )
+    (module.DATA / "phenotype").mkdir(parents=True, exist_ok=True)
+    pregnancy.to_csv(module.DATA / "phenotype/pex_bm_healthv2_preg.csv", index=False)
     sample = values[["participant_id"] + OUTCOMES].copy()
     for modality in ["diffusion", "structural", "functional"]:
         sample[f"in_{modality}"] = True

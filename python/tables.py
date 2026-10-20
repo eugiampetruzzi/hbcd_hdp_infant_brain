@@ -37,6 +37,7 @@ RACE = {
     4: "More than one option selected",
     0: "Non-Hispanic Asian",
 }
+LABOR = {0: "Spontaneous", 1: "Induced", 2: "No labor"}
 
 
 def read(rel):
@@ -103,6 +104,24 @@ def characteristics(sample):
         on=ID,
         how="left",
     )
+    pregnancy = (
+        read("phenotype/pex_bm_healthv2_preg.csv")
+        .drop_duplicates(ID)[
+            [
+                ID,
+                "pex_bm_healthv2_preg__outcome_001",
+                "pex_bm_healthv2_preg__outcome_002",
+            ]
+        ]
+        .copy()
+    )
+    pregnancy["labor"] = pregnancy.pex_bm_healthv2_preg__outcome_001.where(
+        pregnancy.pex_bm_healthv2_preg__outcome_001.isin(LABOR)
+    )
+    pregnancy["cesarean"] = pregnancy.pex_bm_healthv2_preg__outcome_002.where(
+        pregnancy.pex_bm_healthv2_preg__outcome_002.isin([0, 1])
+    )
+    d = d.merge(pregnancy[[ID, "labor", "cesarean"]], on=ID, how="left")
     diffusion = read("outcomes/diffusion/v02_global_cerebral_wm_fa_md.tsv")
     diffusion["md_1e3"] = diffusion.global_median_md * 1000
     network = read("outcomes/functional/v02_functional_network_metrics.tsv")
@@ -202,6 +221,11 @@ def table1(d, n_dwi, n_smri, n_fmri):
         + [
             mean_row("ga_delivery", "Gestational age at birth, weeks"),
             count_row("preterm", "Preterm birth (< 37 weeks), n (%)"),
+        ]
+        + [section("Labor onset, n (%)")]
+        + category_rows("labor", LABOR)
+        + [
+            count_row("cesarean", "Cesarean delivery, n (%)"),
             count_row("child_sex", "Infant male sex, n (%)"),
             mean_row("candidate_age_weeks", "Postnatal age at scan, weeks"),
             mean_row("pma", "Postmenstrual age at scan, weeks"),
@@ -557,9 +581,9 @@ def main():
         "Birth weight for gestational age is a sex-specific z score computed within this sample from "
         "caregiver-reported birth weight; fetal growth restriction and neonatal intensive care admission were "
         "caregiver-reported. Total brain volume was summed from BIBSNet tissue segmentations. "
-        "Gray/white contrast was indexed by three T2-weighted MRIQC measures entered together. Substance use was "
-        "any reported prenatal use on the Timeline Followback. Multiple gestation was identified from reported "
-        "reasons for cesarean delivery. The combined-adjustment model was restricted to infants with complete "
+        "Substance use was any reported use on the Timeline Followback from the last menstrual period "
+        "onward. Multiple gestation was identified from reported reasons for cesarean delivery. "
+        "The combined-adjustment model was restricted to infants with complete "
         "data on all covariates. The effect-modification row gives the HDP × infant sex interaction "
         "coefficient. Confidence intervals and p values use heteroskedasticity-robust standard errors. HDP = "
         "hypertensive disorder of pregnancy; NICU = neonatal intensive care unit.",

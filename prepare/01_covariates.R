@@ -151,12 +151,6 @@ write_input(
   "covariates/v02_bibsnet_brain_volume.tsv"
 )
 
-stopifnot(file.copy(
-  file.path(RELEASE, "imaging/qc_mriqc/img_mriqc_T2w.tsv"),
-  file.path(DATA, "covariates/img_mriqc_T2w.tsv"),
-  overwrite = TRUE
-))
-
 for (table in c(
   "pex_bm_healthv2_inf",
   "pex_bm_healthv2_preg",
