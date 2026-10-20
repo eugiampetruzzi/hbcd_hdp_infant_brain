@@ -165,16 +165,26 @@ curve_panel <- function(outcome, x_title = TRUE, legend = FALSE) {
       alpha = .18,
       colour = NA
     ) +
-    geom_line(linewidth = .8) +
+    geom_line(linewidth = .7) +
     scale_colour_manual(values = c(CONTROL, HDP_RED)) +
     scale_fill_manual(values = c(CONTROL, HDP_RED)) +
-    scale_x_continuous(breaks = 35:40) +
+    scale_x_continuous(breaks = 35:40, expand = c(0, 0)) +
     coord_cartesian(ylim = c(-.7, 1.05)) +
     labs(
-      x = "Gestational age at birth (weeks)",
+      x = if (x_title) "Gestational age at birth (weeks)" else NULL,
       y = paste(panels[[outcome]], "(SD)")
     ) +
     theme_paper
+  if (legend) {
+    p + theme(
+      legend.position = c(.98, .98),
+      legend.justification = c(1, 1),
+      legend.key.size = unit(3, "mm"),
+      legend.background = element_blank()
+    )
+  } else {
+    p + theme(legend.position = "none")
+  }
 }
 global <- read_table("global_models.csv")
 total <- global[
@@ -194,6 +204,15 @@ split <- data.frame(
 split_panel <- ggplot(split) +
   geom_rect(aes(xmin = .6, xmax = 1.4, ymin = ymin, ymax = ymax, fill = part)) +
   annotate(
+    "text",
+    x = .8,
+    y = (split$ymin + split$ymax) / 2,
+    label = sprintf("%.2f", split$ymax - split$ymin),
+    colour = c("white", INK),
+    size = 2.6,
+    fontface = "bold"
+  ) +
+  annotate(
     "errorbar",
     x = 1,
     ymin = total$ci_lo,
@@ -207,7 +226,7 @@ split_panel <- ggplot(split) +
     y = (remaining$beta + total$beta) / 2,
     label = "Accounted for by\ngestational age",
     hjust = 0,
-    size = 2.5,
+    size = 2.4,
     lineheight = .9
   ) +
   annotate(
@@ -216,10 +235,10 @@ split_panel <- ggplot(split) +
     y = remaining$beta / 2,
     label = "Remaining",
     hjust = 0,
-    size = 2.5
+    size = 2.4
   ) +
   geom_hline(yintercept = 0, linewidth = .4) +
-  scale_fill_manual(values = c("#BDBDBD", "#008300"), guide = "none") +
+  scale_fill_manual(values = c("#BDBDBD", HDP_RED), guide = "none") +
   scale_x_continuous(limits = c(.5, 2.3), breaks = NULL) +
   scale_y_continuous(
     limits = c(0, .5),
@@ -229,11 +248,16 @@ split_panel <- ggplot(split) +
   labs(x = NULL, y = "Thicker cortex in HDP (SD)") +
   theme_paper +
   theme(axis.line.x = element_blank())
-fig3 <- (Reduce(`+`, lapply(names(panels), curve_panel)) + split_panel) +
-  plot_layout(ncol = 3, guides = "collect") +
-  plot_annotation(tag_levels = "a") &
-  theme(legend.position = "top")
-save_figure(fig3, "figure3_delivery_timing_curves", 183, 120)
+thickness_panel <- curve_panel("Cortical thickness", x_title = FALSE, legend = TRUE)
+fig3 <- (thickness_panel +
+  curve_panel("Absolute sulcal depth", x_title = FALSE) +
+  split_panel +
+  curve_panel("Mean diffusivity") +
+  curve_panel("Fractional anisotropy") +
+  curve_panel("Mean kurtosis tensor")) +
+  plot_layout(ncol = 3)
+fig3 <- fig3 + plot_annotation(tag_levels = "a")
+save_figure(fig3, "figure3_delivery_timing_curves", 183, 115)
 
 # Figure 4b: share of parcels per network with thicker cortex (networks with >= 5 parcels).
 labels <- c(
