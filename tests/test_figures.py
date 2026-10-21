@@ -113,3 +113,83 @@ def test_figure_main_renders_real_surfaces_and_composes_outputs(figure_data):
     assert (
         (m.FIGURES / "figure4_cortical_thickness.pdf").read_bytes().startswith(b"%PDF")
     )
+
+
+def test_tile_centers_unequal_images_without_losing_pixels(modules):
+    m = modules("python/figure4_map.py")
+    red = np.full((2, 4, 3), [1, 0, 0])
+    green = np.full((4, 2, 3), [0, 1, 0])
+    blue = np.full((1, 1, 3), [0, 0, 1])
+    black = np.zeros((4, 4, 3))
+    tiled = m.tile([[red, green], [blue, black]], gap=2)
+    expected = np.ones((10, 10, 3))
+    expected[1:3, 0:4] = red
+    expected[0:4, 7:9] = green
+    expected[7:8, 1:2] = blue
+    expected[6:10, 6:10] = black
+    np.testing.assert_array_equal(tiled, expected)
+
+
+@pytest.mark.parametrize(
+    "hemi,view", [("L", "lateral"), ("R", "lateral"), ("L", "medial"), ("R", "medial")]
+)
+def test_render_view_produces_rgb_and_closes_its_figure(figure_data, hemi, view):
+    m = figure_data
+    maps = m.surface_maps(np.array([0, 0.1, 0.2, 0.3]), ["L_A_1", "R_A_2", "L_B_1"])
+    before = plt.get_fignums()
+    rendered = m.render_view(maps, hemi, view)
+    assert rendered.ndim == 3 and rendered.shape[2] == 3
+    assert min(rendered.shape[:2]) > 10
+    assert np.isfinite(rendered).all()
+    assert ((rendered >= 0) & (rendered <= 1)).all()
+    assert np.any(rendered < 0.5)
+    assert plt.get_fignums() == before
+
+
+def test_draw_map_keeps_view_order_and_colorbar_below_brains(figure_data, monkeypatch):
+    m = figure_data
+    colors = {
+        ("L", "lateral"): [1, 0, 0],
+        ("R", "lateral"): [0, 1, 0],
+        ("L", "medial"): [0, 0, 1],
+        ("R", "medial"): [0, 0, 0],
+    }
+    # Isolate expensive surface rendering; exercise actual tiling, layout, and PNG output.
+    monkeypatch.setattr(
+        m,
+        "render_view",
+        lambda maps, hemi, view: np.full((20, 30, 3), colors[hemi, view], dtype=float),
+    )
+    path = m.FIGURES / "layout.png"
+    m.draw_map({}, path)
+    image = plt.imread(path)[..., :3]
+    centers = []
+    for color in colors.values():
+        mask = np.all(np.isclose(image, color, atol=0.01), axis=2)
+        # The black tile dominates any black colorbar lettering.
+        ys, xs = np.where(mask[: int(0.8 * len(image))])
+        assert len(xs) > 100
+        centers.append((np.median(xs), np.median(ys)))
+    assert centers[0][0] < centers[1][0]
+    assert centers[2][0] < centers[3][0]
+    assert centers[0][1] < centers[2][1]
+    assert centers[1][1] < centers[3][1]
+    # Colorbar pixels remain in the region below the tiles.
+    bottom = image[int(0.85 * len(image)) :]
+    assert np.any(bottom[..., 2] - bottom[..., 0] > 0.15)
+
+
+def test_figure_renders_when_no_parcel_is_significant(figure_data):
+    m = figure_data
+    path = m.TABLES / "regional.csv"
+    regional = pd.read_csv(path)
+    regional["q"] = 1.0
+    regional.to_csv(path, index=False)
+    values, parcels = m.parcel_values()
+    assert not values.any()
+    maps = m.surface_maps(values, parcels)
+    assert not maps["L"].any() and not maps["R"].any()
+    m.main()
+    image = plt.imread(m.FIGURES / "figure4a_map.png")
+    assert np.isfinite(image).all()
+    assert min(image.shape[:2]) > 100
