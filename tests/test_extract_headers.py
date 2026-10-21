@@ -94,13 +94,14 @@ def test_extracts_matrix_row_labels_but_never_connectivity_values(release_header
     put(
         release_headers,
         f"{FUNC}/sub-private/ses-V02/func/sub-private_task-rest_space-fsLR_seg-MyersLabonte_stat-pearsoncorrelation_relmat.tsv",
-        "\tL_A_1_hash-a\tNone\nNone\tSECRET_VALUE\tSECRET_VALUE\nL_A_1_hash-a\tSECRET_VALUE\tSECRET_VALUE\n",
+        "\tL_A_1_hash-a\tNone\tPostDefault_hash-a\nNone\tSECRET_VALUE\tSECRET_VALUE\tSECRET_VALUE\n"
+        "L_A_1_hash-a\tSECRET_VALUE\tSECRET_VALUE\tSECRET_VALUE\nPostDefault_hash-a\tSECRET_VALUE\tSECRET_VALUE\tSECRET_VALUE\n",
     )
     result = run_extractor(release_headers)
     assert result.returncode == 0, result.stderr
     schema = json.loads(result.stdout)["files"]["connectivity"]["schemas"][0]
-    assert schema["columns"] == ["", "L_A_1_hash-a", "None"]
-    assert schema["row_labels"] == ["None", "L_A_1_hash-a"]
+    assert schema["columns"] == ["", "L_A_1_hash-a", "None", "PostDefault_hash-a"]
+    assert schema["row_labels"] == ["None", "L_A_1_hash-a", "PostDefault_hash-a"]
     assert "SECRET_VALUE" not in result.stdout
 
 
