@@ -1,5 +1,7 @@
 """Release parcel names identify networks and anatomy independently of table order."""
 
+from pathlib import Path
+
 import nibabel as nib
 import numpy as np
 import pandas as pd
@@ -82,23 +84,26 @@ def test_structural_full_headers_preserve_named_values_after_column_permutation(
             assert row[column.split("_hash-")[0]] == i + 0.25
 
 
-def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(modules):
+@pytest.mark.parametrize("generic", [False, True])
+def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(modules, generic):
     m = modules("python/figure4_map.py")
     names = [c.split("_hash-")[0] for c in release_columns("parcel_thickness")]
     positive, negative = "L_PostDefault_1", "L_PostDefault_2"
     m.ATLAS.mkdir(parents=True)
     m.TABLES.mkdir(parents=True)
-    # Label numbers deliberately differ from TSV positions and are noncontiguous.
+    # The public atlas uses Label_5/Label_6 for these two left posterior-default parcels.
+    # Named atlases may use arbitrary numeric labels instead.
+    pos_label, neg_label = (5, 6) if generic else (7, 11)
     labels = {
         0: ("background", (0, 0, 0, 0)),
-        7: (positive, (1, 0, 0, 1)),
-        11: (negative, (0, 1, 0, 1)),
+        pos_label: (f"Label_{pos_label}" if generic else positive, (1, 0, 0, 1)),
+        neg_label: (f"Label_{neg_label}" if generic else negative, (0, 1, 0, 1)),
     }
     header = nib.Cifti2Header.from_axes(
         (axes.LabelAxis(["synthetic"], [labels]), brain_axis(32492))
     )
     nib.save(
-        nib.Cifti2Image(np.array([[7, 11, 0, 7, 11, 0, 0, 0, 0, 0]], np.int32), header),
+        nib.Cifti2Image(np.array([[pos_label, neg_label, 0, pos_label, neg_label, 0, 0, 0, 0, 0]], np.int32), header),
         m.ATLAS / "parcels.dlabel.nii",
     )
     pd.DataFrame(
@@ -119,3 +124,26 @@ def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(mod
         maps = m.surface_maps(*m.parcel_values())
         np.testing.assert_allclose(maps["L"][:5], [0.3, 0, 0, 0.3, 0])
         assert not maps["R"].any()
+
+
+def test_numeric_reference_agrees_with_public_networks_and_release_names(modules):
+    m = modules("python/figure4_map.py")
+    reference = m.numeric_parcel_reference()
+    names = [c.split("_hash-")[0] for c in release_columns("parcel_thickness")]
+    assignments = np.loadtxt(Path(__file__).parent / "fixtures/myers_labonte/parcel_assignments.txt", dtype=int)
+    # Explicit translation of the public network_info.csv names into HBCD abbreviations.
+    networks = ["None", "PostDefault", "AntDefault", "SupPrecuneus", "PostFrontoParietal",
+                "AntFrontoParietal", "InfFrontoParietal", "PreCentFrontoParietal", "LatOrbitoFrontal",
+                "MedOrbitoFrontal", "Salience", "VentralAttn", "Cingulate", "DorsalAttn",
+                "PostPreMotor", "AntPreMotor", "InfPrecuneus", "AntPrecuneus", "MedialVisual",
+                "LateralVisual", "Auditory", "Insula", "SupMotor", "InfMotor"]
+    assert list(reference) == list(range(1, 284))
+    assert list(reference.values()) == names
+    for label, assignment in enumerate(assignments, 1):
+        name = reference[label]
+        network = name.removeprefix("L_").removeprefix("R_")
+        if "_" in network:
+            network = network.rsplit("_", 1)[0]
+        assert network == networks[assignment]
+        # Hemisphere support verified directly against the public 0.5 atlas.
+        assert name.startswith("R_") == (label > 146)
