@@ -97,4 +97,7 @@ test_that("demographic alternatives and non-tissue volumes cannot change covaria
   expect_equal(person$site[i], c("latest", "site-B"))
   v <- results[[1]]$volume
   expect_equal(v$total_brain_volume_mm3[match("sub-001", v$participant_id)], 325)
+  transformed <- local_sensitivity_helpers()$brain_volume_covariate(v[nrow(v):1, ])
+  expect_equal(transformed$log_tbv[match("sub-001", transformed$participant_id)], log(325))
+  expect_true(all(is.na(transformed$log_tbv[transformed$participant_id != "sub-001"])))
 })
