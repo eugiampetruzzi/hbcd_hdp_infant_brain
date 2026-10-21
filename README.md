@@ -68,6 +68,14 @@ files, which are downloaded from the sources listed. The analysis stage reads th
 | `atlas/parcels.dlabel.nii` | Myers-Labonté neonatal parcellation (github.com/myersm0/myers-labonte_parcellation) |
 | `atlas/fsLR_{L,R}_inflated.surf.gii` | fsLR 32k inflated surfaces from TemplateFlow (`tpl-fsLR_den-32k_hemi-*_inflated.surf.gii`) |
 
+Figure 4 supports the public atlas's generic `Label_n` names using the fixed
+283-parcel reference in `python/data/myers_labonte_parcels.tsv`. This preserves the
+release thickness-table order even if derived columns are later reordered.
+Tests check every parcel's network against public `parcel_assignments.txt` and its
+hemisphere against the public 0.5 atlas. Network assignments alone cannot verify
+ordering within the same network and hemisphere; see the
+[reference provenance](tests/fixtures/myers_labonte/README.md).
+
 ## Setup
 
 Requires R (4.5) with `mgcv`, `ComBatFamily` (github.com/andy1764/ComBatFamily), `sandwich`,

@@ -51,3 +51,39 @@ Independent reviewer assessed the implementation through birth-weight extraction
 Final: Ruling: Retain unresolved questionnaire gating and medication ontology as explicit limits; code normalization does not certify clinical completeness. Cost: incomplete ascertainment may still affect sensitivity samples. The atlas compatibility and statistical-calibration limits above also remain. Item 12 semantics and Vermis nonoverlap are now resolved by subsequent evidence.
 
 Final verification: 88 Python tests passed (98.89% statement coverage); 32 R test blocks passed with ComBatFamily required; git diff --check passed. No tests are skipped for the unresolved definitions; those tests have deliberately not been asserted as implemented. Additional disposable mutations verified that reversed birth-weight units and inversion of the none-of-these response are rejected by value assertions.
+
+## Clarifications incorporated after the initial implementation
+
+The user confirmed that other_complication uses items 1–11 excluding 2 and 3:
+1 if any selected item is 1, missing if all selected items are missing, otherwise 0.
+Item 12 is excluded. This matches production, so no cohort-definition change was
+needed. Expanded the regression to cover all-missing, partial-positive,
+partial-negative, all-negative, gestational-hypertension-only and
+preeclampsia-only records. The control-group clarification is resolved.
+
+The user clarified that the actual atlas uses Label_n names. The initial
+name-only implementation was incompatible with this atlas and has been corrected.
+Downloaded the public Myers–Labonte 0.5 atlas and metadata at repository revision
+b4403102b96f73e1aec89be8f643cdc6c5172a03. All 283 release-order networks match
+parcel_assignments.txt; labels 1–146 are left cortex and 147–283 right cortex,
+matching the release prefixes. A fixed numeric-label/name reference now supports
+generic labels while retaining invariance to later column permutations. The new
+test failed against the name-only implementation before the correction.
+
+Ruling (supersedes name-only requirement): Use the supplied release-order
+convention for numeric atlas labels, independently checked at network and
+hemisphere level. Cost: those checks cannot independently disambiguate parcels
+within one network and hemisphere; the fixed reference preserves the original
+release order rather than proving that convention from network memberships alone.
+
+Read Hendrickson et al., Developmental Cognitive Neuroscience 79 (2026) 101706,
+DOI 10.1016/j.dcn.2026.101706, from the user-supplied PDF. Sections 2.1.2 and
+2.2.4 describe anatomical-label segmentation and resampling; the paper refers to
+Supplemental Table 2 for label numbers/names, which is not included in the supplied
+main-article PDF. This is consistent with discrete, nonoverlapping regions. The
+direct evidence for Vermis specifically remains the upstream label-172 lookup
+and per-label voxel counting documented above. The user's Carina check will
+confirm the actual release segmentation. No further volume change was made.
+
+Verification after these clarifications: 90 Python tests pass, 98.91% statement
+coverage; all 32 R test blocks pass with real ComBatFamily checks.

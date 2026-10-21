@@ -85,7 +85,9 @@ def test_structural_full_headers_preserve_named_values_after_column_permutation(
 
 
 @pytest.mark.parametrize("generic", [False, True])
-def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(modules, generic):
+def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(
+    modules, generic
+):
     m = modules("python/figure4_map.py")
     names = [c.split("_hash-")[0] for c in release_columns("parcel_thickness")]
     positive, negative = "L_PostDefault_1", "L_PostDefault_2"
@@ -103,7 +105,13 @@ def test_same_hemisphere_parcel_swaps_cannot_relocate_significant_thickening(mod
         (axes.LabelAxis(["synthetic"], [labels]), brain_axis(32492))
     )
     nib.save(
-        nib.Cifti2Image(np.array([[pos_label, neg_label, 0, pos_label, neg_label, 0, 0, 0, 0, 0]], np.int32), header),
+        nib.Cifti2Image(
+            np.array(
+                [[pos_label, neg_label, 0, pos_label, neg_label, 0, 0, 0, 0, 0]],
+                np.int32,
+            ),
+            header,
+        ),
         m.ATLAS / "parcels.dlabel.nii",
     )
     pd.DataFrame(
@@ -130,13 +138,37 @@ def test_numeric_reference_agrees_with_public_networks_and_release_names(modules
     m = modules("python/figure4_map.py")
     reference = m.numeric_parcel_reference()
     names = [c.split("_hash-")[0] for c in release_columns("parcel_thickness")]
-    assignments = np.loadtxt(Path(__file__).parent / "fixtures/myers_labonte/parcel_assignments.txt", dtype=int)
+    assignments = np.loadtxt(
+        Path(__file__).parent / "fixtures/myers_labonte/parcel_assignments.txt",
+        dtype=int,
+    )
     # Explicit translation of the public network_info.csv names into HBCD abbreviations.
-    networks = ["None", "PostDefault", "AntDefault", "SupPrecuneus", "PostFrontoParietal",
-                "AntFrontoParietal", "InfFrontoParietal", "PreCentFrontoParietal", "LatOrbitoFrontal",
-                "MedOrbitoFrontal", "Salience", "VentralAttn", "Cingulate", "DorsalAttn",
-                "PostPreMotor", "AntPreMotor", "InfPrecuneus", "AntPrecuneus", "MedialVisual",
-                "LateralVisual", "Auditory", "Insula", "SupMotor", "InfMotor"]
+    networks = [
+        "None",
+        "PostDefault",
+        "AntDefault",
+        "SupPrecuneus",
+        "PostFrontoParietal",
+        "AntFrontoParietal",
+        "InfFrontoParietal",
+        "PreCentFrontoParietal",
+        "LatOrbitoFrontal",
+        "MedOrbitoFrontal",
+        "Salience",
+        "VentralAttn",
+        "Cingulate",
+        "DorsalAttn",
+        "PostPreMotor",
+        "AntPreMotor",
+        "InfPrecuneus",
+        "AntPrecuneus",
+        "MedialVisual",
+        "LateralVisual",
+        "Auditory",
+        "Insula",
+        "SupMotor",
+        "InfMotor",
+    ]
     assert list(reference) == list(range(1, 284))
     assert list(reference.values()) == names
     for label, assignment in enumerate(assignments, 1):

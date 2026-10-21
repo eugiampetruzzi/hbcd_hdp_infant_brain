@@ -20,7 +20,10 @@ test_that("None of these is not a complication and false does not establish abse
   )
   expect_null(attr(output, "status"), info = paste(output, collapse = "\n"))
   got <- a$env$read_input("covariates/v02_pregnancy_complications.tsv")
-  i <- match(c("sub-001", "sub-002", "sub-003", "sub-004", "sub-1565", "sub-1871"), got$participant_id)
+  i <- match(
+    c("sub-001", "sub-002", "sub-003", "sub-004", "sub-1565", "sub-1871"),
+    got$participant_id
+  )
   expect_equal(got$other_complication[i], c(NA, 1, 0, 0, 0, 0))
   expect_equal(got$primary_hdp[i], c(0, 0, 0, 0, 1, 1))
   # A non-HDP infant can still have other complications; these are different groups.

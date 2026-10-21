@@ -1,6 +1,7 @@
 """Figure 4: parcels with thicker cortex in HDP infants (a) next to the network bars (b)."""
 
 import io
+from pathlib import Path
 
 import matplotlib
 
@@ -40,15 +41,25 @@ def parcel_values():
     return np.array([0.0] + [beta.get(p, 0.0) for p in parcels]), parcels
 
 
+def numeric_parcel_reference():
+    """Fixed release-order mapping, checked against public networks and hemispheres."""
+    path = Path(__file__).parent / "data/myers_labonte_parcels.tsv"
+    table = pd.read_csv(path, sep="\t")
+    return dict(zip(table.label, table.parcel, strict=True))
+
+
 def surface_maps(values, parcels):
     img = nib.load(ATLAS / "parcels.dlabel.nii")
     labels = np.asarray(img.get_fdata()).ravel().astype(int)
     atlas_names = img.header.get_axis(0).label[0]
     by_name = dict(zip(parcels, values[1:], strict=True))
+    reference = numeric_parcel_reference()
     lookup = np.zeros(labels.max() + 1)
     for label in np.unique(labels):
         if label > 0:
             parcel = atlas_names[label][0].split("_hash-")[0]
+            if parcel == f"Label_{label}":
+                parcel = reference.get(label)
             # Unverified positional matching can silently move an effect within a hemisphere.
             if parcel not in by_name:
                 raise ValueError(f"Atlas label {label} names unknown parcel {parcel!r}")
