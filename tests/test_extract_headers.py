@@ -13,13 +13,29 @@ FUNC = "imaging/func_xcpd/hbcd/derivatives/xcp_d-0f306a2f+0ef9c88a"
 
 
 @pytest.fixture
+def script_repo(tmp_path, monkeypatch):
+    # Never source the developer's real .env during tests.
+    root = tmp_path / "repository with spaces"
+    script = root / "scripts/extract_headers.sh"
+    script.parent.mkdir(parents=True)
+    script.write_bytes(SCRIPT.read_bytes())
+    monkeypatch.setattr(__name__ + ".SCRIPT", script)
+    return root
+
+
+@pytest.fixture(autouse=True)
+def isolated_script(script_repo):
+    pass
+
+
+@pytest.fixture
 def release_headers(tmp_path):
     root = tmp_path / "release with spaces"
     root.mkdir()
     return root
 
 
-def run_extractor(root):
+def run_extractor(root, cwd=None):
     env = os.environ.copy()
     env.pop("HBCD_RELEASE", None)
     env["datadir"] = "/unused-legacy-root"
@@ -27,7 +43,7 @@ def run_extractor(root):
     if root is not None:
         env["HBCD_RELEASE"] = str(root)
     return subprocess.run(
-        ["bash", str(SCRIPT)], env=env, capture_output=True, text=True
+        ["bash", str(SCRIPT)], env=env, cwd=cwd, capture_output=True, text=True
     )
 
 
@@ -113,3 +129,34 @@ def test_empty_or_identifier_bearing_matrix_is_not_emitted(release_headers, cont
     assert not result.stdout
     assert "sub-private" not in result.stderr
     assert "connectivity" in result.stderr
+
+
+def test_sources_repository_env_from_another_directory(
+    script_repo, release_headers, tmp_path
+):
+    put(
+        release_headers,
+        "demographics_sed/sed_basic_demographics.tsv",
+        "participant_id\tsex\n",
+    )
+    (script_repo / ".env").write_text(
+        f'# Shell assignments and quoted paths are supported.\nexport HBCD_RELEASE="{release_headers}"\n'
+    )
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / ".env").write_text('HBCD_RELEASE="/wrong-working-directory"\n')
+    result = run_extractor(None, cwd=elsewhere)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["files"]["demographics"]["status"] == "found"
+
+
+def test_exported_release_overrides_dotenv(script_repo, release_headers):
+    (script_repo / ".env").write_text('HBCD_RELEASE="/wrong-dotenv-directory"\n')
+    put(
+        release_headers,
+        "demographics_sed/sed_basic_demographics.tsv",
+        "participant_id\tsex\n",
+    )
+    result = run_extractor(release_headers)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["files"]["demographics"]["status"] == "found"
