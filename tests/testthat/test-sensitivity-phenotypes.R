@@ -2,14 +2,44 @@ test_that("documented pounds and ounces yield the correct participant birth weig
   # https://docs.hbcdstudy.org/latest/instruments/pregexp/pex/
   # __01 is ounces; __02 is pounds. Unknown weight is not a zero-weight infant.
   e <- local_sensitivity_helpers()
-  d <- release_frame("infant_health", data.frame(
-    participant_id = c("seven-half", "six-three-quarter", "unknown"),
-    session_id = "ses-V02",
-    pex_bm_healthv2_inf_001__01 = c("8", "12", NA),
-    pex_bm_healthv2_inf_001__02 = c("7", "6", NA)
-  ))
+  d <- release_frame(
+    "infant_health",
+    data.frame(
+      participant_id = c("seven-half", "six-three-quarter", "unknown"),
+      session_id = "ses-V02",
+      pex_bm_healthv2_inf_001__01 = c("8", "12", NA),
+      pex_bm_healthv2_inf_001__02 = c("7", "6", NA)
+    )
+  )
   got <- e$birth_weight_covariate(d[3:1, ])
-  expect_equal(got$bw_g[match(d$participant_id, got$participant_id)], c(3401.94, 3061.746, NA))
+  expect_equal(
+    got$bw_g[match(d$participant_id, got$participant_id)],
+    c(3401.94, 3061.746, NA)
+  )
+})
+
+test_that("explicit unknown or declined birth weight cannot become a measured weight", {
+  e <- local_sensitivity_helpers()
+  d <- release_frame("infant_health", data.frame(
+    participant_id = c("known", "unknown", "declined"), session_id = "ses-V02",
+    pex_bm_healthv2_inf_001__01 = 8,
+    pex_bm_healthv2_inf_001__02 = 7,
+    pex_bm_healthv2_inf_001__dk = c(NA, "999", "777")
+  ))
+  got <- e$birth_weight_covariate(d)
+  expect_equal(got$bw_g, c(3401.94, NA, NA))
+  expect_equal(got$participant_id[!is.na(got$bw_g)], "known")
+})
+
+test_that("birth-weight dropdown codes outside the supplied ranges are not measurements", {
+  e <- local_sensitivity_helpers()
+  d <- release_frame("infant_health", data.frame(
+    participant_id = c("known", "bad-ounce", "bad-pound", "negative-ounce", "fractional-code"),
+    session_id = "ses-V02",
+    pex_bm_healthv2_inf_001__01 = c(8, 16, 0, -1, 8.5),
+    pex_bm_healthv2_inf_001__02 = c(7, 7, 21, 7, 7)
+  ))
+  expect_equal(e$birth_weight_covariate(d)$bw_g, c(3401.94, NA, NA, NA, NA))
 })
 
 test_that("prenatal exposure uses aggregate weeks 3-9 and retains positive evidence", {
