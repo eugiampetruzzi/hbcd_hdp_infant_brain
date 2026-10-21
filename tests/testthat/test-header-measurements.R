@@ -93,7 +93,7 @@ test_that("demographic alternatives and non-tissue volumes cannot change covaria
     c(paste0("Left-", tissue), paste0("Right-", tissue), "Brain-Stem")
   )
   v[1, parts] <- seq_len(25)
-  # Zero Vermis does not assume whether this component belongs in total tissue.
+  # BIBSNet counts discrete labels separately, including Vermis (label 172).
   v[[paste0(prefix, "Vermis")]] <- 0
   excluded <- grep(
     "CSF|Ventricle|choroid|Unknown|_age$",
@@ -140,4 +140,15 @@ test_that("demographic alternatives and non-tissue volumes cannot change covaria
   expect_true(all(is.na(transformed$log_tbv[
     transformed$participant_id != "sub-001"
   ])))
+  raw <- a$env$read_release(vrel)
+  raw[[paste0(prefix, "Vermis")]][1] <- 7
+  write_release_fixture(a, vrel, raw)
+  output <- system2(file.path(R.home("bin"), "Rscript"),
+                    c("--vanilla", shQuote(file.path(a$repo, "prepare/01_covariates.R"))),
+                    stdout = TRUE, stderr = TRUE)
+  expect_null(attr(output, "status"), info = paste(output, collapse = "\n"))
+  updated <- a$env$read_input("covariates/v02_bibsnet_brain_volume.tsv")
+  expect_equal(updated$total_brain_volume_mm3[match("sub-001", updated$participant_id)], 332)
+  transformed <- local_sensitivity_helpers()$brain_volume_covariate(updated)
+  expect_equal(transformed$log_tbv[match("sub-001", transformed$participant_id)], log(332))
 })
