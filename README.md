@@ -159,23 +159,39 @@ include R code.
 
 ## Extracting release headers
 
-From the repository directory, with `HBCD_RELEASE` exported and pointing to the raw HBCD release
-root (the directory containing `imaging/`, `pregnancy_exposure/`, etc.):
+Use [`scripts/extract_headers.sh`](scripts/extract_headers.sh) on the machine with
+access to the release to collect schema metadata for checking parcel alignment
+and building realistic synthetic fixtures. It reads the source files without
+modifying them.
+
+Set `HBCD_RELEASE` in the repository's `.env` to the raw HBCD release root
+(the directory containing `imaging/`, `pregnancy_exposure/`, etc.), then run:
 
 ```bash
 uv run bash scripts/extract_headers.sh > hbcd_headers.json
 ```
 
-The extractor uses the existing `HBCD_RELEASE` environment variable;
+The script automatically sources the repository's `.env` if `HBCD_RELEASE` is
+not already set in the environment. An exported value takes precedence. The
+`.env` location is resolved relative to the script, even when invoked from another
+directory. Use shell assignment syntax in `.env`, quoting paths containing spaces.
 `HBCD_HDP_DATA` is not needed because these are raw release files.
 On a data machine without uv, `bash scripts/extract_headers.sh > hbcd_headers.json`
 also works; the script requires only Bash and Python 3's standard library.
-The JSON contains each distinct ordered header for the requested file types,
-including hash suffixes, and ordered parcel row labels for connectivity matrices.
-It records generic file patterns and missing file types, but no participant-specific
-filenames or data values. Matrix row labels must match anatomical parcel naming;
-unexpected labels or participant-like identifiers cause extraction to fail without
-printing a partial report. Check the exit status and review the JSON before sharing.
+
+The resulting `hbcd_headers.json` contains:
+
+- Each distinct header for the requested file types, preserving column order and
+  hash suffixes. Identical headers across files are included only once.
+- Ordered parcel row labels for connectivity matrices, without connectivity values.
+- Generic file patterns and a `found` or `missing` status for each file type.
+
+Participant-specific filenames and participant data values are not included.
+Matrix row labels must match anatomical parcel naming; unexpected labels,
+participant-like identifiers, empty files, or unreadable files cause a nonzero
+exit status without printing a partial report. Missing file types are reported
+in the JSON and do not prevent extraction of the available headers. Check the
+exit status and review the JSON before sharing it.
 The script does not extract the separate CIFTI atlas label mapping or data-dictionary
 definitions of units, missing-value codes, and categories.
 

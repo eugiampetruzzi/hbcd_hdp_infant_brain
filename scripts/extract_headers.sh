@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# With HBCD_RELEASE exported: bash scripts/extract_headers.sh > headers.json
+# Uses HBCD_RELEASE from the environment or repository .env.
+# Run: bash scripts/extract_headers.sh > headers.json
 # Requires Python 3 (standard library only). Reads source files without modifying them.
 set -euo pipefail
 
+if [[ -z "${HBCD_RELEASE+x}" ]]; then
+    extractor_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+    if [[ -f "$extractor_root/.env" ]]; then
+        source "$extractor_root/.env"
+    fi
+fi
+
 if [[ -z "${HBCD_RELEASE:-}" || ! -d "$HBCD_RELEASE" ]]; then
-    echo 'Set HBCD_RELEASE to the HBCD release root directory.' >&2
+    echo 'Set HBCD_RELEASE in .env or the environment to the HBCD release root directory.' >&2
     exit 1
 fi
 export HBCD_RELEASE
