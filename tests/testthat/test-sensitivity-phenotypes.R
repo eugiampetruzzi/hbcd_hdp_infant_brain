@@ -20,12 +20,16 @@ test_that("documented pounds and ounces yield the correct participant birth weig
 
 test_that("explicit unknown or declined birth weight cannot become a measured weight", {
   e <- local_sensitivity_helpers()
-  d <- release_frame("infant_health", data.frame(
-    participant_id = c("known", "unknown", "declined"), session_id = "ses-V02",
-    pex_bm_healthv2_inf_001__01 = 8,
-    pex_bm_healthv2_inf_001__02 = 7,
-    pex_bm_healthv2_inf_001__dk = c(NA, "999", "777")
-  ))
+  d <- release_frame(
+    "infant_health",
+    data.frame(
+      participant_id = c("known", "unknown", "declined"),
+      session_id = "ses-V02",
+      pex_bm_healthv2_inf_001__01 = 8,
+      pex_bm_healthv2_inf_001__02 = 7,
+      pex_bm_healthv2_inf_001__dk = c(NA, "999", "777")
+    )
+  )
   got <- e$birth_weight_covariate(d)
   expect_equal(got$bw_g, c(3401.94, NA, NA))
   expect_equal(got$participant_id[!is.na(got$bw_g)], "known")
@@ -33,12 +37,21 @@ test_that("explicit unknown or declined birth weight cannot become a measured we
 
 test_that("birth-weight dropdown codes outside the supplied ranges are not measurements", {
   e <- local_sensitivity_helpers()
-  d <- release_frame("infant_health", data.frame(
-    participant_id = c("known", "bad-ounce", "bad-pound", "negative-ounce", "fractional-code"),
-    session_id = "ses-V02",
-    pex_bm_healthv2_inf_001__01 = c(8, 16, 0, -1, 8.5),
-    pex_bm_healthv2_inf_001__02 = c(7, 7, 21, 7, 7)
-  ))
+  d <- release_frame(
+    "infant_health",
+    data.frame(
+      participant_id = c(
+        "known",
+        "bad-ounce",
+        "bad-pound",
+        "negative-ounce",
+        "fractional-code"
+      ),
+      session_id = "ses-V02",
+      pex_bm_healthv2_inf_001__01 = c(8, 16, 0, -1, 8.5),
+      pex_bm_healthv2_inf_001__02 = c(7, 7, 21, 7, 7)
+    )
+  )
   expect_equal(e$birth_weight_covariate(d)$bw_g, c(3401.94, NA, NA, NA, NA))
 })
 

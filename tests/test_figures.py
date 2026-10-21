@@ -33,8 +33,10 @@ def figure_data(modules):
             "beta": [0.2, 0.3, 0.4, 9],
         }
     ).to_csv(m.TABLES / "regional.csv", index=False)
-    labels = {i: (name, (i / 4, 0.0, 0.0, 1.0))
-              for i, name in enumerate(["background", "L_A_1", "R_A_2", "L_B_1"])}
+    labels = {
+        i: (name, (i / 4, 0.0, 0.0, 1.0))
+        for i, name in enumerate(["background", "L_A_1", "R_A_2", "L_B_1"])
+    }
     header = nib.Cifti2Header.from_axes(
         (axes.LabelAxis(["parcels"], [labels]), brain_axis(32492))
     )
@@ -90,8 +92,8 @@ def test_surface_maps_follow_names_when_hemisphere_order_changes(figure_data):
     maps = figure_data.surface_maps(
         np.array([0, 0.1, 0.2, 0.3]), ["R_A_2", "L_A_1", "L_B_1"]
     )
-    np.testing.assert_allclose(maps["L"][:5], [.2, .3, 0, .3, .2])
-    np.testing.assert_allclose(maps["R"][:5], [.1, .1, .1, 0, .1])
+    np.testing.assert_allclose(maps["L"][:5], [0.2, 0.3, 0, 0.3, 0.2])
+    np.testing.assert_allclose(maps["R"][:5], [0.1, 0.1, 0.1, 0, 0.1])
 
 
 def test_crop_preserves_colored_region_and_clips_padding(modules):

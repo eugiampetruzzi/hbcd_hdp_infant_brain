@@ -9,7 +9,9 @@ import pandas as pd
 
 @lru_cache
 def release_schemas():
-    return json.loads((Path(__file__).resolve().parents[1] / "hbcd_headers.json").read_text())["files"]
+    return json.loads(
+        (Path(__file__).resolve().parents[1] / "hbcd_headers.json").read_text()
+    )["files"]
 
 
 def release_columns(kind, variant=0):
