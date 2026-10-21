@@ -52,8 +52,13 @@ PATTERNS = {
 
 def parcel_label(value):
     # Only anatomical labels are exported from matrix rows, never subject labels.
+    # Myers-Labonte parcel 1 is a bare network name (e.g. PostDefault) without hemisphere or index.
     base = re.sub(r"_hash-.*$", "", value)
-    return base == "None" or re.fullmatch(r"[LR]_[A-Za-z0-9_+.-]+", base)
+    return (
+        base == "None"
+        or re.fullmatch(r"[LR]_[A-Za-z0-9_+.-]+", base)
+        or re.fullmatch(r"[A-Za-z]+", base)
+    )
 
 
 def read_schema(path, matrix=False):
