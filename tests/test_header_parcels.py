@@ -65,6 +65,7 @@ def test_full_parcel_networks_exclude_unassigned_and_survive_axis_permutations(m
     assert row.mean_network_connectivity == pytest.approx(0.8 / (279 * 278 / 2))
 
 
+@pytest.mark.filterwarnings("error::pandas.errors.PerformanceWarning")
 def test_structural_full_headers_preserve_named_values_after_column_permutation(
     modules,
 ):
@@ -80,6 +81,12 @@ def test_structural_full_headers_preserve_named_values_after_column_permutation(
         row = pd.read_csv(
             m.DATA / f"outcomes/structural/v02_myerslabonte_{metric}.tsv", sep="\t"
         ).iloc[0]
+        assert row.index[:3].tolist() == ["participant_id", "session_id", "source_run"]
+        assert row.iloc[:3].tolist() == ["sub-test", "ses-V02", 1]
+        assert row.index[3:].tolist() == [
+            column.split("_hash-")[0]
+            for column in reversed(release_columns(f"parcel_{metric}"))
+        ]
         for i, column in enumerate(release_columns(f"parcel_{metric}")):
             assert row[column.split("_hash-")[0]] == i + 0.25
 
