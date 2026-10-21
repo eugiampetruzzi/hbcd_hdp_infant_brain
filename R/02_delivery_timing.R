@@ -60,7 +60,7 @@ timing_models <- function(range = NULL) {
       )
       if (!is.null(range)) {
         grid <- expand.grid(
-          ga = range[1]:range[2],
+          ga = seq(range[1], range[2], by = 0.1),
           hdp_o = levels(h$hdp_o),
           sex_m = c(0, 1)
         )
