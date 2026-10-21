@@ -95,10 +95,15 @@ def main(expected_count=1442):
             row = pd.read_csv(path, sep="\t", na_values="n/a")
             row.columns = [re.sub(r"_hash-.*$", "", c) for c in row.columns]
             run = re.search(r"_run-([^_]+)_", path.name)
-            row.insert(0, "source_run", run.group(1) if run else "")
-            row.insert(0, "session_id", "ses-V02")
-            row.insert(0, "participant_id", path.name.split("_")[0])
-            rows.append(row)
+            metadata = pd.DataFrame(
+                {
+                    "participant_id": path.name.split("_")[0],
+                    "session_id": "ses-V02",
+                    "source_run": run.group(1) if run else "",
+                },
+                index=row.index,
+            )
+            rows.append(pd.concat([metadata, row], axis=1))
         table = pd.concat(rows).replace([np.inf, -np.inf], np.nan)
         table.to_csv(out / f"v02_myerslabonte_{metric}.tsv", sep="\t", index=False)
 
