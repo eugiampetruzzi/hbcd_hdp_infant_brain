@@ -2,6 +2,7 @@
 # re-harmonized with the covariates of its own analysis model.
 
 source("R/common.R")
+source("R/sensitivity_covariates.R")
 
 m <- "Structural MRI"
 Y <- "global_area_weighted_thickness"
@@ -14,11 +15,7 @@ final <- read_table("analytic_sample.csv")
 # Birth weight for GA: sex-specific residual of caregiver-reported weight given s(GA).
 infant <- read_input("phenotype/pex_bm_healthv2_inf.csv")
 infant <- infant[!duplicated(infant[[ID]]), ]
-infant$bw_g <- (as.numeric(infant$pex_bm_healthv2_inf_001__02) *
-  16 +
-  as.numeric(infant$pex_bm_healthv2_inf_001__01)) *
-  28.3495
-infant$bw_g[!(infant$bw_g > 400 & infant$bw_g < 6000)] <- NA
+infant <- birth_weight_covariate(infant)
 infant$nicu <- suppressWarnings(as.numeric(infant$pex_bm_healthv2_inf_005))
 infant$nicu[!infant$nicu %in% c(0, 1)] <- NA
 births <- do.call(rbind, lapply(frames, function(x) x[, c(ID, GA, "sex_m")]))
@@ -36,8 +33,9 @@ births$bw_ga_z <- residuals(bw_fit) / sd(residuals(bw_fit))
 
 complications <- read_input("covariates/v02_pregnancy_complications.tsv")
 complications$fgr <- complications$fetal_growth_restriction
-volume <- read_input("covariates/v02_bibsnet_brain_volume.tsv")
-volume$log_tbv <- log(volume$total_brain_volume_mm3)
+volume <- brain_volume_covariate(read_input(
+  "covariates/v02_bibsnet_brain_volume.tsv"
+))
 person <- read_input("covariates/hdp_missingness_person_level.csv")
 person <- person[
   !duplicated(person[[ID]]),
@@ -60,24 +58,7 @@ first_row <- function(x) x[!duplicated(x[[ID]]), ]
 # Any reported prenatal use of each substance on the Timeline Followback (Visits 1 and 2).
 # TLFB weeks 1-2 precede the last menstrual period, so only weeks 3-9 count as prenatal.
 tlfb <- read_input("phenotype/pex_ch_tlfb.csv")
-substance <- data.frame(unique(tlfb[[ID]]))
-names(substance) <- ID
-for (s in c("nic", "alc", "thc", "opd")) {
-  weeks <- grep(
-    paste0("^pex_ch_tlfb_", s, "_wk_0[3-9]"),
-    names(tlfb),
-    value = TRUE
-  )
-  x <- sapply(tlfb[, weeks], num)
-  used <- tapply(rowSums(x > 0, na.rm = TRUE) > 0, tlfb[[ID]], any)
-  answered <- tapply(rowSums(!is.na(x)) > 0, tlfb[[ID]], any)
-  substance[[paste0("tlfb_", s)]] <- ifelse(
-    answered[substance[[ID]]],
-    as.numeric(used[substance[[ID]]]),
-    NA
-  )
-}
-substance$any_substance <- as.numeric(rowSums(substance[, -1]) > 0)
+substance <- substance_exposure(tlfb)
 
 history <- first_row(read_input("phenotype/pex_bm_health_preg__healthhx.csv"))
 # Live births (preghx_002) is skipped for first pregnancies (preghx_001 = 1): nulliparous.
@@ -121,53 +102,7 @@ names(delivery) <- c(
 
 # Antihypertensive use: RxNorm codes recorded at Visit 1 or 2 that Visit 1 names as an antihypertensive.
 meds <- first_row(read_input("phenotype/pex_bm_health_preg__meds.csv"))
-named <- grep("_name$", names(meds), value = TRUE)
-pairs <- do.call(
-  rbind,
-  lapply(named, function(n) {
-    data.frame(
-      code = as.character(meds[[sub("_name$", "", n)]]),
-      name = as.character(meds[[n]])
-    )
-  })
-)
-antihypertensive_names <- "labetalol|nifedipine|methyldopa|hydralazine|amlodipine|metoprolol|procardia|trandate|aldomet"
-codes <- unique(c(
-  pairs$code[grepl(antihypertensive_names, pairs$name, ignore.case = TRUE)],
-  "6185",
-  "7417",
-  "6876",
-  "5470",
-  "17767",
-  "6918"
-))
-any_code <- function(x, cols) {
-  apply(x[, cols, drop = FALSE], 1, function(r) {
-    any(sub("\\.0$", "", r) %in% codes)
-  })
-}
-v1_codes <- grep(
-  "^pex_bm_health_preg__meds_0[0-9]{2}__01$",
-  names(meds),
-  value = TRUE
-)
-v2_codes <- grep(
-  "^pex_bm_healthv2_preg__meds_0(4[7-9]|[5-9][0-9])__01$",
-  names(pregnancy),
-  value = TRUE
-)
-treated <- merge(
-  data.frame(participant_id = meds[[ID]], v1 = any_code(meds, v1_codes)),
-  data.frame(
-    participant_id = pregnancy[[ID]],
-    v2 = any_code(pregnancy, v2_codes)
-  ),
-  by = ID,
-  all = TRUE
-)
-treated$antihypertensive <- as.numeric(
-  treated$v1 %in% TRUE | treated$v2 %in% TRUE
-)
+treated <- medication_exposure(meds, pregnancy)
 
 d0 <- modality_sample(frames, m, extra = "chronic_hypertension")
 d0 <- d0[d0[[ID]] %in% final[[ID]][final$in_structural], ]

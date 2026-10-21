@@ -2,6 +2,7 @@
 # regional effects of image quality or scanner.
 
 source("R/common.R")
+source("R/regional_summary.R")
 
 COVERAGE <- 0.80
 REGIONAL <- list(
@@ -141,13 +142,7 @@ artifact <- data.frame(
 )
 write_table(artifact, "parcel_artifact_check.csv")
 
-thick$thicker <- thick$q < .05 & thick$beta > 0
-thick$thinner <- thick$q < .05 & thick$beta < 0
-networks <- aggregate(
-  cbind(parcels = 1, significant = thicker, thinner) ~ network,
-  data = thick,
-  FUN = sum
-)
+networks <- parcel_network_summary(results)
 write_table(networks, "parcel_networks.csv")
 
 print(aggregate(
