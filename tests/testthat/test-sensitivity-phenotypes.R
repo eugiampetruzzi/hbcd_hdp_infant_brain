@@ -13,8 +13,8 @@ test_that("prenatal exposure uses aggregate weeks 3-9 and retains positive evide
   d$pex_ch_tlfb_opd_wk_09[3] <- 1
   got <- e$substance_exposure(d)
   got <- got[match(ids, got$participant_id), ]
-  expect_equal(got$tlfb_nic, c(0, 1, 0, 1, 0, NA))
-  expect_equal(got$tlfb_opd, c(0, 0, 1, NA, 0, NA))
+  expect_equal(unname(got$tlfb_nic), c(0, 1, 0, 1, 0, NA))
+  expect_equal(unname(got$tlfb_opd), c(0, 0, 1, NA, 0, NA))
   expect_equal(got$any_substance, c(0, 1, 1, 1, 0, NA))
   expect_equal(got$participant_id[got$any_substance %in% 0], c("pre", "zero"))
 })
@@ -26,8 +26,10 @@ test_that("prenatal exposure is invariant to visit order and uses either visit",
   d$pex_ch_tlfb_thc_wk_03 <- c(NA, 1, 0)
   first <- e$substance_exposure(d)
   second <- e$substance_exposure(d[3:1, ])
-  expect_equal(first[order(first$participant_id), ], second[order(second$participant_id), ],
-               ignore_attr = TRUE)
+  first <- first[order(first$participant_id), ]
+  second <- second[order(second$participant_id), ]
+  rownames(first) <- rownames(second) <- NULL
+  expect_equal(first, second)
   expect_equal(first$any_substance[match(c("a", "b"), first$participant_id)], c(1, NA))
 })
 
