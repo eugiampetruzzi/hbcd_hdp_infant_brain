@@ -92,6 +92,7 @@ write_covariate_volumes <- function(a) {
   for (part in parts) {
     d[[paste0(prefix, part)]] <- 2
   }
+  d[[paste0(prefix, "Vermis")]] <- 0
   d[2, paste0(prefix, parts[1])] <- NA
   d[3, paste0(prefix, parts[1])] <- -1
   d[4, paste0(prefix, parts[1:12])] <- 0

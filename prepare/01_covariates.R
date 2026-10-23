@@ -139,7 +139,9 @@ hemi <- lapply(c("Left", "Right"), function(s) {
 parts <- cbind(
   hemi[[1]],
   hemi[[2]],
-  num(bibsnet[[paste0(prefix, "Brain-Stem")]])
+  num(bibsnet[[paste0(prefix, "Brain-Stem")]]),
+  # BIBSNet counts each segmentation label separately; Vermis (172) is disjoint.
+  num(bibsnet[[paste0(prefix, "Vermis")]])
 )
 tbv <- rowSums(parts)
 tbv[
